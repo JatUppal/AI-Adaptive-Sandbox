@@ -145,6 +145,182 @@ graph TD
 - If error rate increases by >2%, send alert.
 - Always flag the first failing service in the chain.
 
+# Data Flow Chart - Adaptive Testing & Debugging Sandbox
+
+## Complete Data Flow Diagram
+
+```mermaid
+graph TB
+    subgraph "📡 Real Production Environment"
+        User([👤 Real Users]) -->|HTTP Requests| ServiceA[Service A]
+        ServiceA -->|API Calls| ServiceB[Service B]
+        ServiceB -->|Database Queries| ServiceC[Service C/DB]
+    end
+    
+    subgraph "🎥 PHASE 0.1: LIVE OBSERVATION"
+        ServiceA -->|Traces| OTel1[OpenTelemetry Agent A]
+        ServiceB -->|Traces| OTel2[OpenTelemetry Agent B]
+        ServiceC -->|Traces| OTel3[OpenTelemetry Agent C]
+        
+        OTel1 -->|Export| Collector[OTel Collector]
+        OTel2 -->|Export| Collector
+        OTel3 -->|Export| Collector
+        
+        Collector -->|Store Traces| Jaeger[(Jaeger Storage)]
+        Collector -->|Export Metrics| Prometheus[(Prometheus)]
+        Collector -->|Save Raw Data| JSON1[(capture_001.json)]
+        
+        Prometheus -->|Query| Grafana[Grafana Dashboard]
+        
+        JSON1 -->|Analyze| Baseline[📊 Baseline Builder]
+        Baseline -->|Generate| Normal[(normal_baseline.yaml)]
+        
+        Normal -->|Compare| Detector[🚨 Anomaly Detector]
+        Detector -->|If Anomaly| Slack1[Slack Alert]
+    end
+    
+    Normal -.->|Phase Transition| Phase2Start
+    JSON1 -.->|Phase Transition| Phase2Start
+    
+    subgraph "🎮 PHASE 0.2: SANDBOX REPLAY"
+        Phase2Start([Start Sandbox]) -->|Read| JSON1Read[(capture_001.json)]
+        Phase2Start -->|Read| NormalRead[(normal_baseline.yaml)]
+        
+        JSON1Read -->|Parse| Replay[Python Replay Engine]
+        
+        subgraph "🏗️ Docker Compose Environment"
+            Replay -->|Replay Requests| MockA[Mock Service A]
+            MockA -->|Through| Proxy1[Toxiproxy A]
+            Proxy1 -->|To| MockB[Mock Service B]
+            MockB -->|Through| Proxy2[Toxiproxy B]
+            Proxy2 -->|To| MockC[Mock Service C]
+            
+            FailureConfig[(failure.yaml)] -->|Configure| Proxy1
+            FailureConfig -->|Configure| Proxy2
+        end
+        
+        MockA -->|Traces| OTelSand1[OTel Agent Mock A]
+        MockB -->|Traces| OTelSand2[OTel Agent Mock B]
+        MockC -->|Traces| OTelSand3[OTel Agent Mock C]
+        
+        OTelSand1 -->|Export| CollectorSand[Sandbox OTel Collector]
+        OTelSand2 -->|Export| CollectorSand
+        OTelSand3 -->|Export| CollectorSand
+        
+        CollectorSand -->|Store| JaegerSand[(Sandbox Jaeger)]
+        CollectorSand -->|Metrics| PromSand[(Sandbox Prometheus)]
+        CollectorSand -->|Save Results| ReplayJSON[(replay_run_007.json)]
+        
+        ReplayJSON -->|Compare With| NormalRead
+        NormalRead -->|Analysis| Reporter[📝 Report Generator]
+        Reporter -->|Generate| FinalReport[(failure_impact_report.json)]
+        FinalReport -->|Send| Slack2[Slack/Email Report]
+    end
+    
+    style User fill:#ffd54f
+    style Slack1 fill:#ff6b6b
+    style Slack2 fill:#ff6b6b
+    style Baseline fill:#4fc3f7
+    style Detector fill:#ffa726
+    style Reporter fill:#66bb6a
+    style FailureConfig fill:#ef5350
+```
+
+## Simplified Data Flow - Key Data Points
+
+```mermaid
+flowchart LR
+    subgraph "Data Sources"
+        RT[Real Traffic] 
+        MT[Metrics]
+        TR[Traces]
+    end
+    
+    subgraph "Phase 0.1 Storage"
+        RT --> CAP[capture_001.json]
+        MT --> PROM[(Prometheus)]
+        TR --> JAEG[(Jaeger)]
+        CAP --> BASE[normal_baseline.yaml]
+    end
+    
+    subgraph "Phase 0.2 Input"
+        CAP --> REPLAY[Replay Engine]
+        BASE --> COMPARE[Comparator]
+        FAIL[failure.yaml] --> TOX[Toxiproxy]
+    end
+    
+    subgraph "Phase 0.2 Output"
+        REPLAY --> RESULT[replay_run_007.json]
+        RESULT --> REPORT[failure_impact_report.json]
+        REPORT --> ALERT[Slack/Email]
+    end
+    
+    style RT fill:#e3f2fd
+    style FAIL fill:#ffebee
+    style ALERT fill:#f3e5f5
+```
+
+## Data Transformation Pipeline
+
+```mermaid
+graph LR
+    subgraph "Raw Data"
+        A1[HTTP Headers]
+        A2[Request Bodies]
+        A3[Response Times]
+        A4[Status Codes]
+    end
+    
+    subgraph "Structured Data"
+        A1 --> B1[OpenTelemetry Spans]
+        A2 --> B1
+        A3 --> B2[Prometheus Metrics]
+        A4 --> B2
+    end
+    
+    subgraph "Stored Formats"
+        B1 --> C1[JSON Traces]
+        B2 --> C2[Time Series Data]
+        C1 --> C3[Baseline YAML]
+        C2 --> C3
+    end
+    
+    subgraph "Analysis Results"
+        C3 --> D1[Anomaly Flags]
+        C3 --> D2[Performance Deltas]
+        D1 --> D3[Alert Messages]
+        D2 --> D3
+    end
+    
+    style A1 fill:#fff3e0
+    style C1 fill:#e8f5e9
+    style D3 fill:#ffcdd2
+```
+
+## Key Data Files & Formats
+
+| File | Purpose | Format | Example Content |
+|------|---------|--------|-----------------|
+| `capture_001.json` | Stores captured real traffic | JSON/NDJSON | Request headers, bodies, timings |
+| `normal_baseline.yaml` | Defines "normal" behavior | YAML | p50: 50ms, p95: 100ms, error_rate: 0.01 |
+| `failure.yaml` | Configures injected failures | YAML | service: B, type: latency, value: 200ms |
+| `replay_run_007.json` | Stores sandbox test results | JSON | Actual vs expected metrics |
+| `failure_impact_report.json` | Final analysis report | JSON | Which services degraded, by how much |
+
+## Data Flow Summary
+
+1. **Real traffic** flows through production services
+2. **OpenTelemetry agents** capture every interaction
+3. **Collector** aggregates and exports to multiple destinations
+4. **Phase 0.1** builds baseline from captured data
+5. **Phase transition** moves captured data to sandbox
+6. **Phase 0.2** replays data through Toxiproxy-wrapped services
+7. **Comparison engine** detects deviations from baseline
+8. **Reports** flow to Slack/Email for human review
+
+*Note: Dotted lines (- - -) represent phase transitions where data moves from observation to testing phase.*
+---
+
 ## Why It Matters
 
 Instead of waiting for production outages, this sandbox helps us:
