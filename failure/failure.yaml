@@ -1,0 +1,3 @@
+type: latency
+target_service: service-b
+value_ms: 200

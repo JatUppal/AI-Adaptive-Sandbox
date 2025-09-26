@@ -1,0 +1,37 @@
+version: "3.9"
+services:
+  service-a:
+    image: ghcr.io/wagoodman/dive:latest # placeholder container; swap later
+    command: ["sh", "-c", "sleep 3600"]
+  service-b:
+    image: ghcr.io/wagoodman/dive:latest
+    command: ["sh", "-c", "sleep 3600"]
+  service-c:
+    image: ghcr.io/wagoodman/dive:latest
+    command: ["sh", "-c", "sleep 3600"]
+
+  toxiproxy:
+    image: shopify/toxiproxy:2.7.0
+    command: ["-host=0.0.0.0"]
+    ports: ["8474:8474"]  # admin API
+
+  otel-collector:
+    image: otel/opentelemetry-collector:0.103.1
+    volumes:
+      - ./observability/otel-collector-config.yaml:/etc/otelcol/config.yaml:ro
+      - ./data/captures:/captures
+    command: ["--config=/etc/otelcol/config.yaml"]
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.57
+    ports: ["16686:16686"]  # UI
+
+  prometheus:
+    image: prom/prometheus:v2.55.0
+    ports: ["9090:9090"]
+
+  grafana:
+    image: grafana/grafana:11.0.0
+    ports: ["3000:3000"]
+    volumes:
+      - ./observability/grafana-dashboards:/var/lib/grafana/dashboards

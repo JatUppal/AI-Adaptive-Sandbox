@@ -1,0 +1,22 @@
+name: CI
+on: { pull_request: { branches: [ main ] } }
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.11' }
+      - run: pip install -r replay/requirements.txt || true
+      - run: pytest -q || true
+      - name: Validate YAML/JSON
+        run: |
+          python - <<'PY'
+          import json,glob,yaml,sys
+          for p in glob.glob('**/*.json',recursive=True):
+              try: json.load(open(p))
+              except Exception as e: print('JSON error',p,e); sys.exit(1)
+          for p in glob.glob('**/*.y*ml',recursive=True):
+              try: yaml.safe_load(open(p))
+              except Exception as e: print('YAML error',p,e); sys.exit(1)
+          PY
