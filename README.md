@@ -1,4 +1,4 @@
-
+## AI Adaptive Sandbox
 Monorepo for Phase 0.1 (live observation) and Phase 0.2 (sandbox replay + one failure):
 - Person 1: Observation (OpenTelemetry + baseline)
 - Person 2: Replay/Failures (Python replay engine + Toxiproxy)
