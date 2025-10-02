@@ -1,37 +1,89 @@
-version: "3.9"
+# docker-compose.yml
+
 services:
   service-a:
-    image: ghcr.io/wagoodman/dive:latest # placeholder container; swap later
-    command: ["sh", "-c", "sleep 3600"]
-  service-b:
-    image: ghcr.io/wagoodman/dive:latest
-    command: ["sh", "-c", "sleep 3600"]
-  service-c:
-    image: ghcr.io/wagoodman/dive:latest
-    command: ["sh", "-c", "sleep 3600"]
+    build:
+      context: ./services/service-a
+      dockerfile: Dockerfile
+    image: ai-adaptive-sandbox-service-a
+    container_name: service-a
+    environment:
+      SERVICE_B_URL: http://service-b:8080
+      OTEL_SERVICE_NAME: service-a
+      OTEL_TRACES_EXPORTER: otlp
+      OTEL_TRACES_SAMPLER: always_on
+      OTEL_PROPAGATORS: tracecontext,baggage
+      OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: http://otel-collector:4318/v1/traces
+      OTEL_LOG_LEVEL: debug
 
-  toxiproxy:
-    image: shopify/toxiproxy:2.7.0
-    command: ["-host=0.0.0.0"]
-    ports: ["8474:8474"]  # admin API
+    ports:
+      - "8081:8080"
+    depends_on: [otel-collector]
+
+  service-b:
+    build:
+      context: ./services/service-b
+      dockerfile: Dockerfile
+    image: ai-adaptive-sandbox-service-b
+    container_name: service-b
+    environment:
+      SERVICE_C_URL: http://service-c:8080
+      OTEL_SERVICE_NAME: service-b
+      OTEL_TRACES_EXPORTER: otlp
+      OTEL_TRACES_SAMPLER: always_on
+      OTEL_PROPAGATORS: tracecontext,baggage
+      OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: http://otel-collector:4318/v1/traces
+      OTEL_LOG_LEVEL: debug
+
+    expose:
+      - "8080"
+    depends_on: [otel-collector, service-c]
+
+  service-c:
+    build:
+      context: ./services/service-c
+      dockerfile: Dockerfile
+    image: ai-adaptive-sandbox-service-c
+    container_name: service-c
+    environment:
+      OTEL_SERVICE_NAME: service-c
+      OTEL_TRACES_EXPORTER: otlp
+      OTEL_TRACES_SAMPLER: always_on
+      OTEL_PROPAGATORS: tracecontext,baggage
+      OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: http://otel-collector:4318/v1/traces
+      OTEL_LOG_LEVEL: debug
+
+    expose:
+      - "8080"
+    depends_on: [otel-collector]
 
   otel-collector:
     image: otel/opentelemetry-collector:0.103.1
+    command: ["--config=/etc/otelcol/config.yaml"]
     volumes:
       - ./observability/otel-collector-config.yaml:/etc/otelcol/config.yaml:ro
       - ./data/captures:/captures
-    command: ["--config=/etc/otelcol/config.yaml"]
+    ports:
+      - "4318:4318"   # OTLP http
+      - "4317:4317"   # OTLP grpc
 
   jaeger:
     image: jaegertracing/all-in-one:1.57
-    ports: ["16686:16686"]  # UI
+    ports:
+      - "16686:16686"
 
   prometheus:
     image: prom/prometheus:v2.55.0
-    ports: ["9090:9090"]
+    ports:
+      - "9090:9090"
 
   grafana:
     image: grafana/grafana:11.0.0
-    ports: ["3000:3000"]
-    volumes:
-      - ./observability/grafana-dashboards:/var/lib/grafana/dashboards
+    ports:
+      - "3000:3000"

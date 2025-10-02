@@ -1,27 +1,31 @@
 receivers:
   otlp:
     protocols:
-      http:
       grpc:
+      http:
 
 processors:
   batch:
 
 exporters:
-  otlp:
-    endpoint: jaeger:4317
-    tls:
-      insecure: true
-  logging:
-    verbosity: basic
+  # Send to Jaeger (OTLP/HTTP on 4318)
+  otlphttp:
+    endpoint: http://jaeger:4318
 
-extensions:
-  health_check:
+  # Write spans to a mounted file in JSON lines (NDJSON) format
+  file:
+    path: /captures/capture_001.ndjson
+    format: json
+    rotation:
+      max_megabytes: 100
+      max_days: 3
+
+  logging:
+    verbosity: detailed
 
 service:
-  extensions: [health_check]
   pipelines:
     traces:
       receivers: [otlp]
       processors: [batch]
-      exporters: [otlp, logging]
+      exporters: [otlphttp, file, logging]
