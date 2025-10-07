@@ -1,6 +1,13 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Response
 import httpx, os, asyncio, random
 from json import JSONDecodeError
+
+# ------------------------ Prometheus Metrics ------------------------
+from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
+
+request_count = Counter('request_count_total', 'Total request count', ['service', 'endpoint'])
+error_count = Counter('error_count_total', 'Total error count', ['service', 'endpoint'])
+request_latency = Histogram('request_latency_seconds', 'Request latency', ['service', 'endpoint'])
 
 from opentelemetry import trace
 from opentelemetry.sdk.resources import Resource
@@ -35,19 +42,32 @@ app = FastAPI()
 FastAPIInstrumentor().instrument_app(app)
 HTTPXClientInstrumentor().instrument()
 
+@app.get("/metrics")
+def metrics():
+    return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)
+
 @app.get("/health")
 def health():
     return {"status": "ok", "service": "B"}
 
 @app.get("/charge")
 async def charge():
-    async with httpx.AsyncClient(timeout=5.0) as client:
-        r = await client.get(f"{SERVICE_C_URL}/inventory")
+    import time
+    start_time = time.time()
+    request_count.labels(service='service-b', endpoint='/charge').inc()
+    
     try:
-        r.raise_for_status()
-        body = r.json()
-    except JSONDecodeError:
-        body = {"non_json_body": r.text}
-    except httpx.HTTPStatusError as e:
-        body = {"error": str(e), "status_code": r.status_code, "body": r.text}
-    return {"service": "B", "downstream": body}
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            r = await client.get(f"{SERVICE_C_URL}/inventory")
+        try:
+            r.raise_for_status()
+            body = r.json()
+        except JSONDecodeError:
+            body = {"non_json_body": r.text}
+        except httpx.HTTPStatusError as e:
+            error_count.labels(service='service-b', endpoint='/charge').inc()
+            body = {"error": str(e), "status_code": r.status_code, "body": r.text}
+        
+        return {"service": "B", "downstream": body}
+    finally:
+        request_latency.labels(service='service-b', endpoint='/charge').observe(time.time() - start_time)

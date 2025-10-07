@@ -1,7 +1,13 @@
 import os
-from fastapi import FastAPI
+from fastapi import FastAPI, Response
 import httpx
 
+# ------------------------ Prometheus Metrics ------------------------
+from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
+
+request_count = Counter('request_count_total', 'Total request count', ['service', 'endpoint'])
+error_count = Counter('error_count_total', 'Total error count', ['service', 'endpoint'])
+request_latency = Histogram('request_latency_seconds', 'Request latency', ['service', 'endpoint'])
 
 from opentelemetry import trace
 from opentelemetry.sdk.resources import Resource
@@ -33,10 +39,21 @@ from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 app = FastAPI()
 FastAPIInstrumentor().instrument_app(app)
 
+@app.get("/metrics")
+def metrics():
+    return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)
+
 @app.get("/health")
 def health():
     return {"status": "ok", "service": "C"}
 
 @app.get("/inventory")
 def inventory():
-    return {"service": "C", "stock": 42}
+    import time
+    start_time = time.time()
+    request_count.labels(service='service-c', endpoint='/inventory').inc()
+    
+    try:
+        return {"service": "C", "stock": 42}
+    finally:
+        request_latency.labels(service='service-c', endpoint='/inventory').observe(time.time() - start_time)
