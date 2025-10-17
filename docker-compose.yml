@@ -87,3 +87,14 @@ services:
     image: grafana/grafana:11.0.0
     ports:
       - "3000:3000"
+  
+  toxiproxy:
+    image: shopify/toxiproxy
+    container_name: toxiproxy
+    ports:
+      - "8474:8474"   # admin API
+      - "8666:8666"   # A→B proxy
+      - "8667:8667"   # B→C proxy
+    networks:
+      - default
+

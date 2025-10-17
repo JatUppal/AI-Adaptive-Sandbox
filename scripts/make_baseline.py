@@ -1,4 +1,3 @@
-# scripts/make_baseline.py
 import json, statistics, yaml
 from pathlib import Path
 
