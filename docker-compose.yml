@@ -8,7 +8,7 @@ services:
     image: ai-adaptive-sandbox-service-a
     container_name: service-a
     environment:
-      SERVICE_B_URL: http://service-b:8080
+      SERVICE_B_URL: http://toxiproxy:8666
       OTEL_SERVICE_NAME: service-a
       OTEL_TRACES_EXPORTER: otlp
       OTEL_TRACES_SAMPLER: always_on
@@ -28,7 +28,7 @@ services:
     image: ai-adaptive-sandbox-service-b
     container_name: service-b
     environment:
-      SERVICE_C_URL: http://service-c:8080
+      SERVICE_C_URL: http://toxiproxy:8667
       OTEL_SERVICE_NAME: service-b
       OTEL_TRACES_EXPORTER: otlp
       OTEL_TRACES_SAMPLER: always_on
@@ -93,9 +93,9 @@ services:
       - GF_SECURITY_ALLOW_EMBEDDING=true
     volumes:
       # Phase 0.1.5 provisioning
-      - ./observability/grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
-      - ./observability/grafana-dashboards/dashboards.yml:/etc/grafana/provisioning/dashboards/dashboards.yml:ro
-      - ./observability/grafana-dashboards:/var/lib/grafana/dashboards:ro
+      - ./observability/grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml
+      - ./observability/grafana-dashboards/dashboards.yml:/etc/grafana/provisioning/dashboards/dashboards.yml
+      - ./observability/grafana-dashboards:/var/lib/grafana/dashboards
     ports:
       - "3000:3000"
 

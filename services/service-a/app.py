@@ -1,6 +1,11 @@
+import time
 from fastapi import FastAPI, Response
+from fastapi.responses import JSONResponse
 import httpx, os
+import logging
 from json import JSONDecodeError
+
+logger = logging.getLogger("service-a")
 
 # ------------------------ Prometheus Metrics ------------------------
 from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
@@ -55,25 +60,42 @@ def health():
 
 @app.get("/checkout")
 async def checkout():
-    import time
-    start_time = time.time()
-    request_count.labels(service='service-a', endpoint='/checkout').inc()
-    
+    start = time.perf_counter()
+    # Always count the incoming request
+    request_count.labels(service="service-a", endpoint="/checkout").inc()
+
     try:
         async with httpx.AsyncClient(timeout=5.0) as client:
+            # Call B through Toxiproxy (may fail due to toxics)
             r = await client.get(f"{SERVICE_B_URL}/charge")
-        try:
             r.raise_for_status()
             body = r.json()
-        except JSONDecodeError:
-            body = {"non_json_body": r.text}
-        except httpx.HTTPStatusError as e:
-            error_count.labels(service='service-a', endpoint='/checkout').inc()
-            body = {"error": str(e), "status_code": r.status_code, "body": r.text}
-        
-        return {"service": "A", "downstream": body}
+            return {"service": "A", "downstream": body}
+
+    except (httpx.RequestError, httpx.HTTPStatusError, JSONDecodeError) as e:
+        # Count ANY downstream error (network, status, bad JSON)
+        error_count.labels(service="service-a", endpoint="/checkout").inc()
+        logger.warning("Downstream error talking to B: %s", e)
+        return JSONResponse(
+            {"error": "downstream_request_error", "detail": str(e)},
+            status_code=502,
+        )
+
+    except Exception as e:
+        # Belt-and-suspenders: catch anything unexpected too
+        error_count.labels(service="service-a", endpoint="/checkout").inc()
+        logger.exception("Unexpected error in /checkout: %s", e)
+        return JSONResponse(
+            {"error": "unexpected_error", "detail": str(e)},
+            status_code=500,
+        )
+
     finally:
-        request_latency.labels(service='service-a', endpoint='/checkout').observe(time.time() - start_time)
+        # Always observe latency
+        request_latency.labels(service="service-a", endpoint="/checkout").observe(
+            time.perf_counter() - start
+        )
+
 
 # quick probe to emit a span on-demand for debugging
 @app.get("/trace-probe")
