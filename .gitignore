@@ -2,6 +2,7 @@
 # Python
 __pycache__/
 *.pyc
+.venv/
 
 # Node / misc (if you add any frontend later)
 node_modules/
