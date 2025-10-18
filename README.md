@@ -230,3 +230,94 @@ p50_ms: 26.16
 p95_ms: 35.66
 error_rate: 0.1987
 ```
+
+## Phase 0.1.5: Reporting & Monitoring
+
+### Metrics & Dashboards
+
+All services now expose Prometheus metrics at `/metrics` endpoints:
+- Service A: http://localhost:8081/metrics
+- Service B: http://service-b:8080/metrics (internal)
+- Service C: http://service-c:8080/metrics (internal)
+
+**View Prometheus targets:**
+```bash
+open http://localhost:9090/targets
+```
+
+**View Grafana Reporting Dashboard:**
+```bash
+open http://localhost:3000
+```
+
+The dashboard includes:
+- Request rate trends by service
+- Error rate monitoring
+- Latency percentiles (p50, p95)
+- Real-time gauges for current performance
+
+### Generate Performance Reports
+
+Create a comparison report between baseline and failure scenarios:
+
+```bash
+python scripts/report_generator.py \
+  --baseline data/baselines/normal_baseline.yaml \
+  --compare data/baselines/failure_vs_normal.yaml \
+  --output reports/summary_report.md
+```
+
+View the generated report:
+```bash
+cat reports/summary_report.md
+```
+
+### Simulate Alerts
+
+Check if metrics exceed thresholds and send mock Slack alerts:
+
+```bash
+# Dry-run (print alerts without sending)
+python scripts/slack_notifier.py \
+  --baseline data/baselines/normal_baseline.yaml \
+  --dry-run
+
+# Send to mock Slack webhook
+python scripts/slack_notifier.py \
+  --baseline data/baselines/normal_baseline.yaml
+```
+
+Configure alert thresholds in `config/alert_thresholds.yaml`:
+```yaml
+latency_p95_ms: 500
+error_rate_pct: 5
+latency_p50_ms: 200
+```
+
+### Run Complete Reporting Pipeline
+
+Execute the full reporting workflow:
+
+```bash
+./scripts/run_reporting_pipeline.sh
+```
+
+This script:
+1. Generates traffic (optional, set `SKIP_TRAFFIC=true` to skip)
+2. Creates baseline from captured traces
+3. Generates comparison report
+4. Checks thresholds and sends alerts
+5. Exits with non-zero code if critical thresholds are breached
+
+### Mock Slack Webhook
+
+The mock Slack service receives alerts at:
+```bash
+# View mock-slack logs
+docker logs mock-slack
+
+# Test webhook directly
+curl -X POST http://localhost:5000/webhook \
+  -H "Content-Type: application/json" \
+  -d '{"text": "Test alert"}'
+```

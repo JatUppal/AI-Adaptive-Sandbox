@@ -1,0 +1,9 @@
+# Alert Thresholds Configuration
+# Alerts will be triggered when metrics exceed these thresholds
+
+latency_p95_ms: 500
+error_rate_pct: 5
+latency_p50_ms: 200
+
+# Slack webhook configuration
+slack_webhook_url: "http://localhost:5000/webhook"

@@ -9,3 +9,6 @@ opentelemetry-instrumentation-fastapi==0.46b0
 opentelemetry-instrumentation-asgi==0.46b0
 opentelemetry-instrumentation-httpx==0.46b0
 opentelemetry-instrumentation-starlette==0.46b0
+pydantic==2.8.2
+pyyaml==6.0.2
+pytest==8.2.0

@@ -16,3 +16,10 @@ data/captures/*.ndjson
 !data/captures/.keep
 data/replays/*.json
 !data/replays/.keep
+data/baselines/*.yaml
+!data/baselines/.keep
+
+# Generated reports
+reports/*.md
+reports/*.html
+!reports/.keep

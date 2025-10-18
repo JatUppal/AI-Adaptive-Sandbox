@@ -1,6 +1,13 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Response
 import httpx, os
 from json import JSONDecodeError
+
+# ------------------------ Prometheus Metrics ------------------------
+from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
+
+request_count = Counter('request_count_total', 'Total request count', ['service', 'endpoint'])
+error_count = Counter('error_count_total', 'Total error count', ['service', 'endpoint'])
+request_latency = Histogram('request_latency_seconds', 'Request latency', ['service', 'endpoint'])
 
 # ------------------------ OpenTelemetry SDK setup ------------------------
 from opentelemetry import trace
@@ -38,22 +45,35 @@ app = FastAPI()
 FastAPIInstrumentor().instrument_app(app)
 HTTPXClientInstrumentor().instrument()
 
+@app.get("/metrics")
+def metrics():
+    return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)
+
 @app.get("/health")
 def health():
     return {"status": "ok", "service": "A"}
 
 @app.get("/checkout")
 async def checkout():
-    async with httpx.AsyncClient(timeout=5.0) as client:
-        r = await client.get(f"{SERVICE_B_URL}/charge")
+    import time
+    start_time = time.time()
+    request_count.labels(service='service-a', endpoint='/checkout').inc()
+    
     try:
-        r.raise_for_status()
-        body = r.json()
-    except JSONDecodeError:
-        body = {"non_json_body": r.text}
-    except httpx.HTTPStatusError as e:
-        body = {"error": str(e), "status_code": r.status_code, "body": r.text}
-    return {"service": "A", "downstream": body}
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            r = await client.get(f"{SERVICE_B_URL}/charge")
+        try:
+            r.raise_for_status()
+            body = r.json()
+        except JSONDecodeError:
+            body = {"non_json_body": r.text}
+        except httpx.HTTPStatusError as e:
+            error_count.labels(service='service-a', endpoint='/checkout').inc()
+            body = {"error": str(e), "status_code": r.status_code, "body": r.text}
+        
+        return {"service": "A", "downstream": body}
+    finally:
+        request_latency.labels(service='service-a', endpoint='/checkout').observe(time.time() - start_time)
 
 # quick probe to emit a span on-demand for debugging
 @app.get("/trace-probe")

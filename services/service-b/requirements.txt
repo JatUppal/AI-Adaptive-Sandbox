@@ -9,3 +9,5 @@ opentelemetry-instrumentation-fastapi==0.46b0
 opentelemetry-instrumentation-asgi==0.46b0
 opentelemetry-instrumentation-httpx==0.46b0
 opentelemetry-instrumentation-starlette==0.46b0
+
+prometheus-client==0.20.0
