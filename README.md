@@ -1,46 +1,44 @@
-## AI Adaptive Sandbox
+# AI Adaptive Sandbox
 
-Monorepo for Phase 0.1 (live observation) and Phase 0.2 (sandbox replay + failures):
+A full observability sandbox for distributed tracing, metrics, and failure simulation.
 
-* Person 1: Observation (OpenTelemetry + baseline)
-* Person 2: Replay/Failures (Python replay engine + Toxiproxy)
-* Person 3: Reporting/Monitoring (Prom/Grafana + Slack)
+Includes 3 FastAPI microservices instrumented with OpenTelemetry, Prometheus, Grafana, Jaeger, and Toxiproxy.
 
-Contract files live in `data/`:
+## Stack Overview
 
-* `data/captures/capture_001.json` (NDJSON traces)
-* `data/baselines/normal_baseline.yaml`
-* `data/replays/replay_run_001.json`
+| Component | Purpose | URL / Port |
+|-----------|---------|------------|
+| `service-a` | Entry service (A→B→C chain) | http://localhost:8081 |
+| `service-b` | Internal downstream | :8080 |
+| `service-c` | Internal downstream | :8080 |
+| `otel-collector` | Receives and exports traces | 4317 / 4318 |
+| `jaeger` | Trace visualization | http://localhost:16686 |
+| `prometheus` | Metrics storage & queries | http://localhost:9090 |
+| `grafana` | Dashboards & reports | http://localhost:3000 |
+| `toxiproxy` | Failure injection | API: :8474, A→B: :8666, B→C: :8667 |
+| `mock-slack` | Simulated Slack alerts | http://localhost:5000 |
 
-See `docs/flow-draft.md` for the flow.
-
-## Running the Sandbox
-
-This repo spins up three FastAPI microservices (Service A, Service B, Service C) instrumented with OpenTelemetry, along with an OTel Collector, Jaeger, Prometheus, and Grafana.
-
-### 1. Start the stack
+## 1. Start the Sandbox
 
 ```bash
 docker compose up -d --build
 ```
 
-This launches:
+Check containers:
 
-* `service-a` (exposed at `localhost:8081`)
-* `service-b` (internal, port `8080`)
-* `service-c` (internal, port `8080`)
-* `otel-collector` (ports `4317` gRPC / `4318` HTTP)
-* `jaeger` ([http://localhost:16686](http://localhost:16686))
-* `prometheus` ([http://localhost:9090](http://localhost:9090))
-* `grafana` ([http://localhost:3000](http://localhost:3000))
+```bash
+docker compose ps
+```
 
-### 2. Hit Service A (triggers A→B→C chain)
+All services should be healthy.
+
+## 2. Hit Service A (end-to-end request)
 
 ```bash
 curl -s http://localhost:8081/checkout | jq .
 ```
 
-Expected response:
+Expected JSON:
 
 ```json
 {
@@ -55,269 +53,168 @@ Expected response:
 }
 ```
 
-### 3. Generate some traffic
+## 3. Generate Load
+
+Run a small burst of requests:
 
 ```bash
 for i in {1..20}; do curl -s http://localhost:8081/checkout > /dev/null; done
 ```
 
-### 4. Verify traces captured locally
+## 4. Observe Distributed Traces
 
-Traces are exported by the collector to `./data/captures`.
+Open Jaeger at http://localhost:16686.
 
-Count events:
+Choose `service-a` and click **Find Traces** to view A→B→C spans.
+
+## 5. View Metrics in Prometheus
+
+Prometheus scrapes `/metrics` from all services.
+
+Test queries directly at http://localhost:9090/graph:
+
+**Request rate:**
+```promql
+sum by (service,endpoint) (rate(request_count_total[1m]))
+```
+
+**Error rate:**
+```promql
+sum by (service,endpoint) (rate(error_count_total[1m]))
+```
+
+## 6. View Grafana Dashboards
+
+Visit: http://localhost:3000
+
+**Default dashboard:** Reporting Dashboard
+
+It shows:
+- Request rate by service
+- Error rate over time
+- Latency (p50, p95)
+- Real-time p95 gauges
+
+⏱ **Dashboard refresh:** set to every 5 seconds  
+ **Time window:** Last 15 minutes
+
+The `[1m]` query windows are now saved permanently — no reconfiguration needed.
+
+All dashboard JSONs are version-controlled in:
+```
+observability/grafana-dashboards/
+```
+
+They auto-load when teammates run `docker compose up`.
+
+## 7. Inject Failures via Toxiproxy
+
+Toxiproxy lets you simulate latency, packet loss, or disconnects.
+
+### List proxies
 
 ```bash
-wc -l data/captures/capture_001.ndjson
+toxiproxy-cli -host localhost:8474 list
 ```
 
-Check service names:
+### Add latency (A→B)
 
 ```bash
-jq -r '.resourceSpans[].resource.attributes[]
-       | select(.key=="service.name")
-       | .value.stringValue' data/captures/capture_001.ndjson \
-  | sort | uniq -c
+toxiproxy-cli -host localhost:8474 toxic add \
+  --type latency \
+  --toxicName latency_ab \
+  --attribute latency=500 \
+  --attribute jitter=50 \
+  ab
 ```
 
-Expected output:
-
-```
-  N manual-test
-  N service-a
-  N service-b
-  N service-c
-```
-
-### 5. Visualize in Jaeger
-
-Open [http://localhost:16686](http://localhost:16686) in your browser, select a service (e.g. `service-a`), and run a query to see end-to-end distributed traces across A → B → C.
-
-### 6. Replay Engine
-
-Replay captured traffic using `scripts/replay_engine.py`:
+### Simulate packet cut (A→B)
 
 ```bash
-python scripts/replay_engine.py \
-  --input data/captures/capture_001.ndjson \
-  --output data/captures/capture_replay_001.ndjson \
-  --count 30
+toxiproxy-cli -host localhost:8474 toxic add \
+  --type limit_data \
+  --toxicName ab-cut \
+  --attribute bytes=1 \
+  ab
 ```
 
-* Confirms that requests are replayed to `service-a`.
-* Verify new traces in Jaeger.
-* Output capture saved to `data/captures/capture_replay_001.ndjson`.
-
-### 7. Toxiproxy: Failure Injection
-
-Toxiproxy allows controlled failures between services. Proxies are already created:
-
-* `ab` → routes traffic from A → B (localhost:8666)
-* `bc` → routes traffic from B → C (localhost:8667)
-
-#### Add Failures (Toxics)
-
-**Latency (ms)**
+### Remove toxics
 
 ```bash
-# A→B latency
-curl -X POST http://localhost:8474/proxies/ab/toxics -d '{
-  "name": "latency_ab",
-  "type": "latency",
-  "attributes": {"latency":500}
-}'
-
-# B→C latency
-curl -X POST http://localhost:8474/proxies/bc/toxics -d '{
-  "name": "latency_bc",
-  "type": "latency",
-  "attributes": {"latency":500}
-}'
+toxiproxy-cli -host localhost:8474 toxic remove --toxicName ab-cut ab
+toxiproxy-cli -host localhost:8474 toxic remove --toxicName latency_ab ab
 ```
 
-**Packet Loss**
+## 🧪 8. Verify Error Metrics
+
+After adding a toxic, test requests:
 
 ```bash
-# A→B packet loss
-curl -X POST http://localhost:8474/proxies/ab/toxics -d '{
-  "name": "packet_loss_ab",
-  "type": "limit_data",
-  "attributes": {"bytes":1024}
-}'
-
-# B→C packet loss
-curl -X POST http://localhost:8474/proxies/bc/toxics -d '{
-  "name": "packet_loss_bc",
-  "type": "limit_data",
-  "attributes": {"bytes":1024}
-}'
+for i in $(seq 1 40); do
+  curl -s -o /dev/null -w "%{http_code}\n" http://localhost:8081/checkout
+done | sort | uniq -c
 ```
 
-**Abort / Timeout**
+You should see responses like `40 502` or `40 500`.
+
+Confirm in metrics:
 
 ```bash
-# A→B timeout
-curl -X POST http://localhost:8474/proxies/ab/toxics -d '{
-  "name": "abort_ab",
-  "type": "timeout",
-  "attributes": {"timeout":2000}
-}'
-
-# B→C timeout
-curl -X POST http://localhost:8474/proxies/bc/toxics -d '{
-  "name": "abort_bc",
-  "type": "timeout",
-  "attributes": {"timeout":2000}
-}'
+curl -s http://localhost:8081/metrics | egrep 'request_count_total|error_count_total'
 ```
 
-**Verify Toxics**
+Expected:
+```
+request_count_total{service="service-a",endpoint="/checkout"} 40
+error_count_total{service="service-a",endpoint="/checkout"} 40
+```
+
+## 9. Visualize Failures
+
+In Grafana, watch:
+- Error rate spike to ~100%
+- p95 latency change
+- Gauges turn red
+
+Then remove the toxic to return to normal — the dashboard will drop back to 0% error rate.
+
+## 10. (Optional) Slack Alerts
+
+Check the mock Slack service:
 
 ```bash
-curl http://localhost:8474/proxies | jq
-```
-
-**Remove / Disable Toxics**
-
-```bash
-# Remove all toxics from a proxy
-curl -X DELETE http://localhost:8474/proxies/ab/toxics
-
-# Remove a specific toxic
-curl -X DELETE http://localhost:8474/proxies/bc/toxics/latency_bc
-```
-
-### 8. Run Replay Under Failures
-
-Replay requests while toxics are active:
-
-```bash
-# Latency scenario
-python scripts/replay_engine.py \
-  --input data/captures/capture_001.ndjson \
-  --output data/captures/capture_failure_latency.ndjson \
-  --count 30
-
-# Packet loss scenario
-python scripts/replay_engine.py \
-  --input data/captures/capture_001.ndjson \
-  --output data/captures/capture_failure_packetloss.ndjson \
-  --count 30
-```
-
-### 9. Baseline Comparison
-
-Compute metrics and compare failure vs normal:
-
-```bash
-python scripts/make_baseline.py \
-  --baseline data/captures/capture_001.ndjson \
-  --compare data/captures/capture_failure_latency.ndjson \
-  --output data/baselines/failure_vs_normal.yaml
-```
-
-Metrics computed:
-
-* `p50_ms` → median latency
-* `p95_ms` → 95th percentile latency
-* `error_rate` → fraction of failed requests
-
-Output example (`data/baselines/failure_vs_normal.yaml`):
-
-```yaml
-sample_count: 151
-p50_ms: 26.16
-p95_ms: 35.66
-error_rate: 0.1987
-```
-
-## Phase 0.1.5: Reporting & Monitoring
-
-### Metrics & Dashboards
-
-All services now expose Prometheus metrics at `/metrics` endpoints:
-- Service A: http://localhost:8081/metrics
-- Service B: http://service-b:8080/metrics (internal)
-- Service C: http://service-c:8080/metrics (internal)
-
-**View Prometheus targets:**
-```bash
-open http://localhost:9090/targets
-```
-
-**View Grafana Reporting Dashboard:**
-```bash
-open http://localhost:3000
-```
-
-The dashboard includes:
-- Request rate trends by service
-- Error rate monitoring
-- Latency percentiles (p50, p95)
-- Real-time gauges for current performance
-
-### Generate Performance Reports
-
-Create a comparison report between baseline and failure scenarios:
-
-```bash
-python scripts/report_generator.py \
-  --baseline data/baselines/normal_baseline.yaml \
-  --compare data/baselines/failure_vs_normal.yaml \
-  --output reports/summary_report.md
-```
-
-View the generated report:
-```bash
-cat reports/summary_report.md
-```
-
-### Simulate Alerts
-
-Check if metrics exceed thresholds and send mock Slack alerts:
-
-```bash
-# Dry-run (print alerts without sending)
-python scripts/slack_notifier.py \
-  --baseline data/baselines/normal_baseline.yaml \
-  --dry-run
-
-# Send to mock Slack webhook
-python scripts/slack_notifier.py \
-  --baseline data/baselines/normal_baseline.yaml
-```
-
-Configure alert thresholds in `config/alert_thresholds.yaml`:
-```yaml
-latency_p95_ms: 500
-error_rate_pct: 5
-latency_p50_ms: 200
-```
-
-### Run Complete Reporting Pipeline
-
-Execute the full reporting workflow:
-
-```bash
-./scripts/run_reporting_pipeline.sh
-```
-
-This script:
-1. Generates traffic (optional, set `SKIP_TRAFFIC=true` to skip)
-2. Creates baseline from captured traces
-3. Generates comparison report
-4. Checks thresholds and sends alerts
-5. Exits with non-zero code if critical thresholds are breached
-
-### Mock Slack Webhook
-
-The mock Slack service receives alerts at:
-```bash
-# View mock-slack logs
 docker logs mock-slack
+```
 
-# Test webhook directly
+Send test alert:
+
+```bash
 curl -X POST http://localhost:5000/webhook \
   -H "Content-Type: application/json" \
-  -d '{"text": "Test alert"}'
+  -d '{"text":"🔥 High error rate detected"}'
 ```
+
+## 11. Tear Down
+
+Stop and remove everything:
+
+```bash
+docker compose down
+```
+
+Clean data:
+
+```bash
+rm -rf data/captures/*
+```
+
+## Team Notes
+
+**All dashboards persist** because of the writable Grafana mount:
+- `./observability/grafana-dashboards:/var/lib/grafana/dashboards`
+
+**Grafana auto-loads dashboards** defined in:
+- `./observability/grafana-dashboards/dashboards.yml`
+
+**Prometheus targets auto-register** from:
+- `./observability/prometheus.yml`
