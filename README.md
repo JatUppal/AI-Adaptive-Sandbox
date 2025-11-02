@@ -218,3 +218,103 @@ rm -rf data/captures/*
 
 **Prometheus targets auto-register** from:
 - `./observability/prometheus.yml`
+
+# Phase 2 — Predictive AI (Quickstart)
+
+**Goal:** build a tiny dataset from Prometheus, train a simple classifier, and serve a live `failure_risk_score` metric + `/predict` API.
+
+## 0) Prep: generate some load
+```bash
+for i in {1..60}; do curl -s http://localhost:8081/checkout >/dev/null; sleep 1; done
+```
+
+## 1) Build a metrics dataset
+
+Requires Prometheus running (`docker compose up -d prometheus`).
+```bash
+pip install -r scripts/requirements.txt
+python scripts/build_dataset.py --minutes 30 --out data/phase2/metrics_dataset.csv
+```
+
+**Output:** `data/phase2/metrics_dataset.csv`
+
+## 2) Train a model
+```bash
+python scripts/train_model.py \
+  --data data/phase2/metrics_dataset.csv \
+  --model-out models/failure_predictor.pkl \
+  --cols-out models/feature_columns.json
+```
+
+**Outputs:**
+* `models/failure_predictor.pkl` (sklearn model)
+* `models/feature_columns.json` (feature order used at inference time)
+
+## 3) Run the live predictor
+
+### Local (no Docker):
+```bash
+pip install -r services/ai-predictor/requirements.txt
+uvicorn services.ai-predictor.app:app --reload --port 8085
+```
+
+### Docker (optional, if you added it to `docker-compose.yml`):
+```bash
+docker compose up -d ai-predictor
+```
+
+## 4) Check outputs
+
+### Risk API
+```
+http://localhost:8085/predict
+```
+
+### Prometheus metric
+```
+http://localhost:8085/metrics  →  failure_risk_score{service="service-a"}
+```
+
+### Grafana gauge (manual add)
+* Open Grafana → any dashboard (or create one)
+* Add a Gauge panel with query:
+```promql
+failure_risk_score{service="service-a"}
+```
+* Set refresh to 5s while testing.
+
+## Notes / Troubleshooting
+
+### Missing directories
+If `data/phase2/` or `models/` don't exist, create them:
+```bash
+mkdir -p data/phase2 models
+```
+
+### Prometheus scrape configuration
+If you run the predictor in Docker and want Prometheus to scrape it, add this to `observability/prometheus.yml` (choose one):
+
+**Local host (no Docker):**
+```yaml
+- job_name: 'ai-predictor'
+  scrape_interval: 5s
+  static_configs:
+    - targets: ['host.docker.internal:8085']
+```
+
+**Docker service (if defined in compose):**
+```yaml
+- job_name: 'ai-predictor'
+  scrape_interval: 5s
+  static_configs:
+    - targets: ['ai-predictor:8080']
+```
+
+Then restart Prometheus:
+```bash
+docker compose restart prometheus
+open http://localhost:9090/targets
+```
+
+### Model not loaded
+If the predictor returns `model_loaded: false`, it will serve a stub score. Train the model (Step 2) or mount `models/` into the container so it can find `failure_predictor.pkl` and `feature_columns.json`.
