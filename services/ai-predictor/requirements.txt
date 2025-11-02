@@ -1,0 +1,6 @@
+fastapi
+uvicorn
+requests
+prometheus_client
+scikit-learn
+joblib
