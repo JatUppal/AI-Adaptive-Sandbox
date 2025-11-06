@@ -18,6 +18,113 @@ Includes 3 FastAPI microservices instrumented with OpenTelemetry, Prometheus, Gr
 | `toxiproxy` | Failure injection | API: :8474, A→B: :8666, B→C: :8667 |
 | `mock-slack` | Simulated Slack alerts | http://localhost:5000 |
 
+
+## Start the Frontend
+### 1) Start the platform (services + prom + toxiproxy)
+
+From the repo root:
+```bash
+# starts: service-a,b,c + toxiproxy + prometheus + the proxy (port 3001)
+docker compose up -d
+```
+
+#### Sanity checks:
+```bash
+# Proxy (gateway) health
+curl -s http://localhost:3001/proxy/health
+
+# Prometheus health page (UI)
+open http://localhost:9090   # or: xdg-open ... / start ...
+# or query via API:
+curl -s "http://localhost:9090/-/healthy"
+```
+
+### 2) Configure the frontend
+
+Create `frontend/.env` (or `.env.local`) with the proxy base URL so the UI can call the gateway:
+```bash
+# frontend/.env
+VITE_PROXY_URL=http://localhost:3001/proxy
+```
+
+If you omit this, the app will default to `/proxy` and expect your frontend and proxy to be served from the same origin.
+
+### 3) Run the frontend (Vite)
+```bash
+cd frontend
+
+# install deps
+npm install
+# (or) pnpm i
+# (or) yarn
+
+# run dev server (http://localhost:5173)
+npm run dev
+```
+
+**Open:** `http://localhost:5173`
+
+You should see the left-nav: Dashboard / Replay / Failure Injection / AI Insights / Reports
+
+### 4) What each page does
+
+#### Dashboard
+* Tiles show instant values (requests/min, error rate, p95).
+* Charts show range (last 5 min) time series.
+* Data comes from Prometheus through the proxy:
+  * `GET /proxy/prom/requests`
+  * `GET /proxy/prom/errors`
+  * `GET /proxy/prom/p95`
+  * `GET /proxy/prom/requests/range`
+  * `GET /proxy/prom/errors/range`
+  * `GET /proxy/prom/p95/range`
+
+#### Replay
+* Click Start Replay to send N requests through A → B → C.
+* Proxy endpoint used:
+  * `POST /proxy/replay/start` with `{ count, delay }`.
+
+#### Failure Injection
+* Lists Toxiproxy proxies (`a_to_b`, `b_to_c`).
+* Add a toxic (e.g., latency 1000ms; optional jitter).
+* Proxy endpoints used:
+  * `GET /proxy/toxics/list`
+  * `POST /proxy/toxics/add` `{ proxy, toxic }`
+  * `DELETE /proxy/toxics/remove/:proxy/:toxicName`
+
+After adding latency on `a_to_b`, re-run Replay—success rate will dip and p95 will rise.
+
+### 5) Useful curl checks
+```bash
+# Proxy
+curl -s http://localhost:3001/proxy/health
+curl -s http://localhost:3001/proxy/status
+curl -s -X POST http://localhost:3001/proxy/replay/start \
+  -H 'content-type: application/json' -d '{"count":5,"delay":200}'
+
+# Toxiproxy (via proxy)
+curl -s http://localhost:3001/proxy/toxics/list | jq .
+curl -s -X POST http://localhost:3001/proxy/toxics/add \
+  -H 'content-type: application/json' \
+  -d '{"proxy":"a_to_b","toxic":{"type":"latency","name":"lat_1000","attributes":{"latency":1000,"jitter":250}}}'
+
+# Prometheus
+curl -s "http://localhost:9090/-/healthy"
+```
+
+### 6) Environment & ports (defaults)
+
+* **Frontend (Vite):** `5173`
+* **Proxy (gateway):** `3001` (exposes `/proxy/*`)
+* **Prometheus:** `9090`
+* **Service A:** `8081` (external for quick curl tests)
+* **Toxiproxy API:** `8474` (internal; UI calls through proxy)
+
+If you change any of these in `docker-compose.yml` or the proxy config, update `VITE_PROXY_URL` accordingly.
+
+
+
+
 ## 1. Start the Sandbox
 
 ```bash
