@@ -16,11 +16,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-background flex">
       {/* Sidebar */}
-      <aside className="w-64 bg-sidebar border-r border-sidebar-border">
+      <aside className="relative w-64 bg-sidebar border-r border-sidebar-border">
         <div className="p-6">
           <h1 className="text-xl font-bold text-sidebar-primary flex items-center gap-2">
             <Activity className="h-6 w-6" />
-            Control Plane
+            Prometheon
           </h1>
           <p className="text-xs text-muted-foreground mt-1">AI Adaptive Sandbox</p>
         </div>

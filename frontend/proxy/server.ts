@@ -1,15 +1,36 @@
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import fetch from 'node-fetch';
+
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
 const SERVICE_A_URL = process.env.SERVICE_A_URL || 'http://localhost:8001';
+const SERVICE_B_URL = process.env.SERVICE_B_URL || 'http://localhost:8666';
+const SERVICE_C_URL = process.env.SERVICE_C_URL || 'http://localhost:8667';
 const PROM_URL = process.env.PROM_URL || 'http://localhost:9090';
 const TOXIPROXY_URL = process.env.TOXIPROXY_URL || 'http://localhost:8474';
 const PREDICTOR_URL = process.env.PREDICTOR_URL || 'http://localhost:8003';
+
+async function check(url: string, opts: {method?: string} = {}) {
+  const controller = new AbortController();
+  const t = setTimeout(() => controller.abort(), 2500);
+  try {
+    const r = await fetch(url, { signal: controller.signal, method: opts.method || 'GET' });
+    clearTimeout(t);
+    const ok = r.ok;
+    let body: any = null;
+    try { body = await r.json(); } catch { body = await r.text(); }
+    return { ok, status: r.status, body };
+  } catch (e:any) {
+    clearTimeout(t);
+    return { ok: false, status: 0, body: String(e?.message || e) };
+  }
+}
+
 
 // Health check
 app.get('/proxy/health', (req, res) => {
@@ -25,6 +46,30 @@ app.get('/proxy/status', async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: 'Service A unavailable', details: error.message });
   }
+});
+
+app.get('/proxy/services/health', async (_req, res) => {
+  const checks = [
+    { name: 'Service A', url: `${SERVICE_A_URL}/health` },
+    { name: 'Service B', url: `${SERVICE_B_URL}/health` },
+    { name: 'Service C', url: `${SERVICE_C_URL}/health` },
+    { name: 'Prometheus', url: `${PROM_URL}/api/v1/query?query=up` },   // Prom readiness
+    { name: 'Toxiproxy', url: `${TOXIPROXY_URL}/proxies` }, // list proxies as a health signal
+    { name: 'AI Predictor', url: `${PREDICTOR_URL}/health` },
+  ];
+
+  const results = await Promise.all(checks.map(async c => {
+    const r = await check(c.url);
+    return {
+      name: c.name,
+      url: c.url,
+      healthy: r.ok,
+      status: r.status,
+      detail: r.body
+    };
+  }));
+
+  res.json({ services: results });
 });
 
 // Prometheus metrics - requests
@@ -179,7 +224,71 @@ const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`Proxy server running on port ${PORT}`);
   console.log(`SERVICE_A_URL: ${SERVICE_A_URL}`);
+  console.log(`SERVICE_B_URL: ${SERVICE_B_URL}`);
+  console.log(`SERVICE_C_URL: ${SERVICE_C_URL}`);
   console.log(`PROM_URL: ${PROM_URL}`);
   console.log(`TOXIPROXY_URL: ${TOXIPROXY_URL}`);
   console.log(`PREDICTOR_URL: ${PREDICTOR_URL}`);
+});
+
+// ---------- Prometheus RANGE queries (for charts) ----------
+function toRFC3339(d: Date) {
+  return d.toISOString(); // Prom accepts ISO-8601
+}
+
+// last 5 minutes, 15s step
+function defaultRange() {
+  const end = new Date();
+  const start = new Date(end.getTime() - 5 * 60 * 1000);
+  const step = '15s';
+  return { start, end, step };
+}
+
+// Requests/min (range)
+app.get('/proxy/prom/requests/range', async (req, res) => {
+  try {
+    const { start, end, step } = defaultRange();
+    const query = 'sum by (service)(rate(request_count_total[1m]))';
+    const url = `${PROM_URL}/api/v1/query_range?query=${encodeURIComponent(query)}&start=${encodeURIComponent(
+      toRFC3339(start)
+    )}&end=${encodeURIComponent(toRFC3339(end))}&step=${encodeURIComponent(step)}`;
+    const response = await fetch(url);
+    const data = await response.json();
+    res.json(data);
+  } catch (error: any) {
+    res.status(500).json({ error: 'Prometheus unavailable', details: error.message });
+  }
+});
+
+// Error rate (range)
+app.get('/proxy/prom/errors/range', async (req, res) => {
+  try {
+    const { start, end, step } = defaultRange();
+    const query = 'sum by (service)(rate(error_count_total[1m]))';
+    const url = `${PROM_URL}/api/v1/query_range?query=${encodeURIComponent(query)}&start=${encodeURIComponent(
+      toRFC3339(start)
+    )}&end=${encodeURIComponent(toRFC3339(end))}&step=${encodeURIComponent(step)}`;
+    const response = await fetch(url);
+    const data = await response.json();
+    res.json(data);
+  } catch (error: any) {
+    res.status(500).json({ error: 'Prometheus unavailable', details: error.message });
+  }
+});
+
+// p95 latency (range) — seconds; multiply by 1000 in UI if you want ms
+app.get('/proxy/prom/p95/range', async (req, res) => {
+  try {
+    const { start, end, step } = defaultRange();
+    const query =
+      'histogram_quantile(0.95, sum(rate(request_latency_seconds_bucket[1m])) by (le, service))';
+    const url = `${PROM_URL}/api/v1/query_range?query=${encodeURIComponent(query)}&start=${encodeURIComponent(
+      toRFC3339(start)
+    )}&end=${encodeURIComponent(toRFC3339(end))}&step=${encodeURIComponent(step)}`;
+    const response = await fetch(url);
+    const data = await response.json();
+    res.json(data);
+  } catch (error: any) {
+    res.status(500).json({ error: 'Prometheus unavailable', details: error.message });
+  }
 });

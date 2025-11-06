@@ -14,6 +14,7 @@ export const api = {
   // Health checks
   health: () => fetchProxyData('/health'),
   serviceStatus: () => fetchProxyData('/status'),
+  servicesHealth: () => fetchProxyData('/services/health'),
   
   // Prometheus metrics
   getRequestMetrics: () => fetchProxyData('/prom/requests'),
@@ -27,6 +28,11 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ count, delay })
     }),
+
+  // NEW: range (for charts)
+  getRequestMetricsRange: () => fetchProxyData('/prom/requests/range'),
+  getErrorMetricsRange: () => fetchProxyData('/prom/errors/range'),
+  getP95LatencyRange: () => fetchProxyData('/prom/p95/range'),
   
   // Toxiproxy
   listToxics: () => fetchProxyData('/toxics/list'),

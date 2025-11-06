@@ -21,6 +21,7 @@ export default function FailureInjection() {
   const [selectedProxy, setSelectedProxy] = useState("");
   const [toxicType, setToxicType] = useState("latency");
   const [toxicValue, setToxicValue] = useState("1000");
+  const [jitter, setJitter] = useState("0"); 
 
   const { data: proxies = [], isLoading } = useQuery({
     queryKey: ['toxics'],
@@ -61,14 +62,19 @@ export default function FailureInjection() {
       toast.error("Please select a proxy");
       return;
     }
+    const toInt = (s: string) => {
+      const n = parseInt(s, 10);
+      return Number.isFinite(n) ? n : 0;
+    };
 
     const toxic = {
       type: toxicType,
       name: `${toxicType}_${Date.now()}`,
       attributes: {
-        latency: toxicType === "latency" ? parseInt(toxicValue) : undefined,
-        rate: toxicType === "bandwidth" ? parseInt(toxicValue) : undefined,
-        timeout: toxicType === "timeout" ? parseInt(toxicValue) : undefined,
+        latency: toxicType === "latency" ? toInt(toxicValue) : undefined,
+        jitter:  toxicType === "latency" ? toInt(jitter)     : undefined, // NEW
+        rate:    toxicType === "bandwidth" ? toInt(toxicValue) : undefined,
+        timeout: toxicType === "timeout"   ? toInt(toxicValue) : undefined,
       },
     };
 
@@ -131,7 +137,21 @@ export default function FailureInjection() {
                 placeholder="1000"
               />
             </div>
-
+            {toxicType === "latency" && (
+              <div className="space-y-2">
+                <Label htmlFor="jitter">Jitter (ms)</Label>
+                <Input
+                  id="jitter"
+                  type="number"
+                  value={jitter}
+                  onChange={(e) => setJitter(e.target.value)}
+                  placeholder="0"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Randomizes added delay in ±jitter range (e.g., 2500 with latency 4000 → 1500–6500ms)
+                </p>
+              </div>
+            )}
             <Button 
               onClick={handleAddToxic} 
               disabled={addToxicMutation.isPending}
