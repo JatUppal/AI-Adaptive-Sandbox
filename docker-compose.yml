@@ -59,6 +59,19 @@ services:
     expose:
       - "8080"
     depends_on: [otel-collector]
+  
+  ai-predictor:
+    build:
+      context: ./services/ai-predictor
+    image: ai-adaptive-sandbox-ai-predictor
+    container_name: ai-predictor
+    environment:
+      OTEL_SERVICE_NAME: ai-predictor
+    ports:
+      - "8003:8000"
+    depends_on: [otel-collector]
+
+
 
   otel-collector:
     image: otel/opentelemetry-collector:0.103.1

@@ -1,5 +1,5 @@
 import time
-from fastapi import FastAPI, Response
+from fastapi import FastAPI, Response, Request
 from fastapi.responses import JSONResponse
 import httpx, os
 import logging
@@ -58,8 +58,8 @@ def metrics():
 def health():
     return {"status": "ok", "service": "A"}
 
-@app.get("/checkout")
-async def checkout():
+@app.api_route("/checkout", methods=["GET", "POST"])
+async def checkout(request: Request):
     start = time.perf_counter()
     # Always count the incoming request
     request_count.labels(service="service-a", endpoint="/checkout").inc()
