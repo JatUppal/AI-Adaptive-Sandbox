@@ -11,6 +11,7 @@ Includes 3 FastAPI microservices instrumented with OpenTelemetry, Prometheus, Gr
 | `service-a` | Entry service (A→B→C chain) | http://localhost:8081 |
 | `service-b` | Internal downstream | :8080 |
 | `service-c` | Internal downstream | :8080 |
+| `ai-predictor` | AI failure risk prediction | http://localhost:8085 |
 | `otel-collector` | Receives and exports traces | 4317 / 4318 |
 | `jaeger` | Trace visualization | http://localhost:16686 |
 | `prometheus` | Metrics storage & queries | http://localhost:9090 |
@@ -326,26 +327,64 @@ rm -rf data/captures/*
 **Prometheus targets auto-register** from:
 - `./observability/prometheus.yml`
 
-# Phase 2 — Predictive AI (Quickstart)
+# Phase 2 — Predictive AI (Complete Guide)
 
-**Goal:** build a tiny dataset from Prometheus, train a simple classifier, and serve a live `failure_risk_score` metric + `/predict` API.
+**Goal:** Build a dataset from Prometheus metrics, train a failure prediction model, and serve live risk scores via API and Prometheus metrics with Grafana visualization.
 
-## 0) Prep: generate some load
+## Prerequisites
+
+Ensure the sandbox is running:
 ```bash
-for i in {1..60}; do curl -s http://localhost:8081/checkout >/dev/null; sleep 1; done
+docker compose up -d
 ```
 
-## 1) Build a metrics dataset
+## Step 1: Generate Load & Metrics
 
-Requires Prometheus running (`docker compose up -d prometheus`).
+Generate normal traffic to collect baseline metrics:
+```bash
+# Generate 60 seconds of normal traffic
+for i in {1..60}; do 
+  curl -s http://localhost:8081/checkout >/dev/null
+  sleep 1
+done
+```
+
+Optionally inject some failures to create a balanced dataset:
+```bash
+# Add latency toxic to simulate degradation
+curl -X POST http://localhost:8474/proxies/a_to_b/toxics \
+  -H "Content-Type: application/json" \
+  -d '{"type":"latency","name":"lat_test","attributes":{"latency":1000}}'
+
+# Generate traffic with failures
+for i in {1..30}; do 
+  curl -s http://localhost:8081/checkout >/dev/null
+  sleep 1
+done
+
+# Remove toxic
+curl -X DELETE http://localhost:8474/proxies/a_to_b/toxics/lat_test
+```
+
+## Step 2: Build Training Dataset
+
+Install dependencies and build the dataset from Prometheus:
 ```bash
 pip install -r scripts/requirements.txt
 python scripts/build_dataset.py --minutes 30 --out data/phase2/metrics_dataset.csv
 ```
 
-**Output:** `data/phase2/metrics_dataset.csv`
+**Output:** `data/phase2/metrics_dataset.csv` with features:
+- `req_rate`: Request rate (requests/sec)
+- `err_rate`: Error rate (0-1)
+- `p50_ms`: 50th percentile latency (ms)
+- `p95_ms`: 95th percentile latency (ms)
+- `toxic_active`: Whether failure injection is active (0/1)
+- `failure`: Label (1 if error_rate > 0.1 or p95 > 800ms)
 
-## 2) Train a model
+## Step 3: Train the Model
+
+Train a Random Forest classifier:
 ```bash
 python scripts/train_model.py \
   --data data/phase2/metrics_dataset.csv \
@@ -354,74 +393,198 @@ python scripts/train_model.py \
 ```
 
 **Outputs:**
-* `models/failure_predictor.pkl` (sklearn model)
-* `models/feature_columns.json` (feature order used at inference time)
+- `models/failure_predictor.pkl`: Trained sklearn model
+- `models/feature_columns.json`: Feature column order for inference
 
-## 3) Run the live predictor
+The script will display:
+- Classification report
+- Feature importance
+- ROC AUC score
 
-### Local (no Docker):
-```bash
-pip install -r services/ai-predictor/requirements.txt
-uvicorn services.ai-predictor.app:app --reload --port 8085
-```
+## Step 4: Run the AI Predictor Service
 
-### Docker (optional, if you added it to `docker-compose.yml`):
+The ai-predictor service is already configured in `docker-compose.yml`. Start it:
+
 ```bash
 docker compose up -d ai-predictor
 ```
 
-## 4) Check outputs
+The service will:
+- Load the trained model from `models/`
+- Query live metrics from Prometheus every time `/predict` is called
+- Expose `failure_risk_score` metric on `/metrics`
 
-### Risk API
-```
-http://localhost:8085/predict
-```
+**Ports:**
+- API: http://localhost:8085
+- Metrics: http://localhost:8085/metrics
 
-### Prometheus metric
-```
-http://localhost:8085/metrics  →  failure_risk_score{service="service-a"}
-```
+## Step 5: Test the Predictor
 
-### Grafana gauge (manual add)
-* Open Grafana → any dashboard (or create one)
-* Add a Gauge panel with query:
-```promql
-failure_risk_score{service="service-a"}
-```
-* Set refresh to 5s while testing.
-
-## Notes / Troubleshooting
-
-### Missing directories
-If `data/phase2/` or `models/` don't exist, create them:
+### Health check
 ```bash
-mkdir -p data/phase2 models
+curl http://localhost:8085/health | jq
 ```
 
-### Prometheus scrape configuration
-If you run the predictor in Docker and want Prometheus to scrape it, add this to `observability/prometheus.yml` (choose one):
-
-**Local host (no Docker):**
-```yaml
-- job_name: 'ai-predictor'
-  scrape_interval: 5s
-  static_configs:
-    - targets: ['host.docker.internal:8085']
+Expected output:
+```json
+{
+  "ok": true,
+  "model_loaded": true,
+  "prom_url": "http://prometheus:9090"
+}
 ```
 
-**Docker service (if defined in compose):**
-```yaml
-- job_name: 'ai-predictor'
-  scrape_interval: 5s
-  static_configs:
-    - targets: ['ai-predictor:8080']
-```
-
-Then restart Prometheus:
+### Get risk prediction
 ```bash
-docker compose restart prometheus
-open http://localhost:9090/targets
+curl http://localhost:8085/predict | jq
 ```
+
+Expected output:
+```json
+{
+  "service": "service-a",
+  "risk_score": 0.23,
+  "status": "LOW",
+  "reason": "err_rate=0.000, p95=245ms",
+  "features": {
+    "req_rate": 0.5,
+    "err_rate": 0.0,
+    "p50_ms": 150,
+    "p95_ms": 245,
+    "toxic_active": 0
+  },
+  "model_loaded": true
+}
+```
+
+**Status thresholds:**
+- `LOW`: risk_score < 0.5
+- `MEDIUM`: 0.5 ≤ risk_score < 0.8
+- `HIGH_RISK`: risk_score ≥ 0.8
+
+### View Prometheus metric
+```bash
+curl http://localhost:8085/metrics | grep failure_risk_score
+```
+
+Expected output:
+```
+failure_risk_score{service="service-a"} 0.23
+```
+
+## Step 6: View in Grafana
+
+Open Grafana at http://localhost:3000 and navigate to the **Reporting Dashboard**.
+
+The dashboard now includes two new panels:
+1. **AI Failure Risk Score** (Gauge): Current risk level with color thresholds
+   - Green: < 0.5 (LOW)
+   - Yellow: 0.5-0.8 (MEDIUM)
+   - Red: ≥ 0.8 (HIGH_RISK)
+
+2. **AI Failure Risk Over Time** (Time Series): Historical risk trend
+
+Both panels query: `failure_risk_score{service="service-a"}`
+
+The dashboard auto-refreshes every 5 seconds.
+
+## Step 7: Test Live Predictions
+
+Inject a failure and watch the risk score increase:
+
+```bash
+# Add high latency
+curl -X POST http://localhost:8474/proxies/a_to_b/toxics \
+  -H "Content-Type: application/json" \
+  -d '{"type":"latency","name":"high_lat","attributes":{"latency":2000}}'
+
+# Generate traffic
+for i in {1..20}; do 
+  curl -s http://localhost:8081/checkout >/dev/null
+  sleep 1
+done
+
+# Check risk score (should increase)
+curl http://localhost:8085/predict | jq '.risk_score'
+
+# Watch in Grafana - gauge should turn yellow/red
+```
+
+Clean up:
+```bash
+curl -X DELETE http://localhost:8474/proxies/a_to_b/toxics/high_lat
+```
+
+## Architecture
+
+```
+┌─────────────┐
+│  Services   │ → Metrics → ┌────────────┐
+│  (A, B, C)  │             │ Prometheus │
+└─────────────┘             └──────┬─────┘
+                                   │
+                            ┌──────▼──────┐
+                            │AI Predictor │
+                            │  - Queries  │
+                            │  - Predicts │
+                            │  - Exposes  │
+                            └──────┬──────┘
+                                   │
+                            ┌──────▼──────┐
+                            │  Grafana    │
+                            │  Dashboard  │
+                            └─────────────┘
+```
+
+## Troubleshooting
 
 ### Model not loaded
-If the predictor returns `model_loaded: false`, it will serve a stub score. Train the model (Step 2) or mount `models/` into the container so it can find `failure_predictor.pkl` and `feature_columns.json`.
+If `model_loaded: false`:
+1. Ensure you ran Step 3 to train the model
+2. Check that `models/failure_predictor.pkl` exists
+3. Restart the service: `docker compose restart ai-predictor`
+
+### No data in Grafana panels
+1. Verify Prometheus is scraping ai-predictor:
+   - Visit http://localhost:9090/targets
+   - Look for `ai-predictor` job (should be UP)
+2. Call `/predict` at least once to initialize the metric
+3. Check metric exists: `curl http://localhost:8085/metrics | grep failure_risk_score`
+
+### Risk score always 0.2 (stub)
+This means the model isn't loaded or predictions are failing:
+1. Check logs: `docker compose logs ai-predictor`
+2. Verify model files exist in `models/`
+3. Ensure training completed successfully
+
+### Prometheus queries return 0
+- Wait 1-2 minutes for metrics to accumulate
+- Ensure services are receiving traffic
+- Check Prometheus UI: http://localhost:9090
+
+## Local Development (without Docker)
+
+Run the predictor locally for faster iteration:
+
+```bash
+# Install dependencies
+pip install -r services/ai-predictor/requirements.txt
+
+# Set environment variables
+export PROM_URL=http://localhost:9090
+export MODEL_PATH=models/failure_predictor.pkl
+export COLS_PATH=models/feature_columns.json
+
+# Run service
+uvicorn services.ai-predictor.app:app --reload --port 8085
+```
+
+Access at http://localhost:8085
+
+## Next Steps
+
+- **Improve the model**: Collect more diverse failure scenarios
+- **Add more features**: Include toxic_active detection, request patterns
+- **Automated retraining**: Schedule periodic model updates
+- **Alerting**: Set up alerts when risk_score > 0.8
+- **Multi-service**: Extend predictions to service-b and service-c

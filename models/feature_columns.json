@@ -1,0 +1,7 @@
+[
+  "req_rate",
+  "err_rate",
+  "p50_ms",
+  "p95_ms",
+  "toxic_active"
+]

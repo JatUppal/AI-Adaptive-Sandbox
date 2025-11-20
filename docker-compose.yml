@@ -67,9 +67,14 @@ services:
     container_name: ai-predictor
     environment:
       OTEL_SERVICE_NAME: ai-predictor
+      PROM_URL: http://prometheus:9090
+      MODEL_PATH: /app/models/failure_predictor.pkl
+      COLS_PATH: /app/models/feature_columns.json
+    volumes:
+      - ./models:/app/models:ro
     ports:
-      - "8003:8000"
-    depends_on: [otel-collector]
+      - "8085:8000"
+    depends_on: [prometheus]
 
 
 

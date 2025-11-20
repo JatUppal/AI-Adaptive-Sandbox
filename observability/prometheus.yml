@@ -20,3 +20,10 @@ scrape_configs:
       - targets: ['service-c:8080']
         labels:
           service: 'service-c'
+
+  - job_name: 'ai-predictor'
+    scrape_interval: 5s
+    static_configs:
+      - targets: ['ai-predictor:8000']
+        labels:
+          service: 'ai-predictor'
