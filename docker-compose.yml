@@ -76,6 +76,28 @@ services:
       - "8085:8000"
     depends_on: [prometheus]
 
+  rca-api:
+    build:
+      context: ./api
+    container_name: rca-api
+    ports:
+      - "8000:8000"
+    depends_on:
+      - jaeger
+      - prometheus
+      - service-a
+      - service-b
+      - service-c
+    environment:
+      - JAEGER_URL=http://jaeger:16686
+      - PROMETHEUS_URL=http://prometheus:9090
+    volumes:
+      - ./models:/models:ro
+      - ./scripts:/scripts:ro
+      - ./data:/data
+      - ./reports:/reports
+    restart: unless-stopped
+
 
 
   otel-collector:
