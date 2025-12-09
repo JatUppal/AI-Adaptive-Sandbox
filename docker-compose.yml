@@ -125,6 +125,28 @@ services:
       - "8474:8474"   # admin API
       - "8666:8666"   # A→B proxy
       - "8667:8667"   # B→C proxy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8474/version"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+  toxiproxy-init:
+    image: curlimages/curl:latest
+    depends_on:
+      toxiproxy:
+        condition: service_healthy
+    command: >
+      sh -c "
+      echo 'Creating Toxiproxy proxies...' &&
+      curl -X POST http://toxiproxy:8474/proxies 
+        -H 'Content-Type: application/json' 
+        -d '{\"name\":\"a_to_b\",\"listen\":\"0.0.0.0:8666\",\"upstream\":\"service-b:8080\",\"enabled\":true}' &&
+      curl -X POST http://toxiproxy:8474/proxies 
+        -H 'Content-Type: application/json' 
+        -d '{\"name\":\"b_to_c\",\"listen\":\"0.0.0.0:8667\",\"upstream\":\"service-c:8080\",\"enabled\":true}' &&
+      echo '✅ Proxies created successfully!'
+      "
+    restart: "no"
 
   # Phase 0.1.5 mock Slack webhook
   mock-slack:
