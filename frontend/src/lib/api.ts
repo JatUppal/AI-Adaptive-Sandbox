@@ -1,3 +1,5 @@
+import { AnalysisResponse, PredictionResponse, SimilarIncident, Report } from "@/types";
+
 const PROXY_URL = import.meta.env.VITE_PROXY_URL || '/proxy';
 
 export async function fetchProxyData<T>(endpoint: string, options?: RequestInit): Promise<T> {
@@ -55,3 +57,51 @@ export const api = {
       body: JSON.stringify(data)
     }),
 };
+
+export async function predictImpact(faultConfig: {
+  fault_type: string;
+  fault_target: string;
+  fault_magnitude: number;
+}): Promise<PredictionResponse> {
+  return fetchProxyData('/api/predict-impact', {
+    method: 'POST',
+    body: JSON.stringify(faultConfig)
+  });
+}
+
+export async function analyzeFailure(
+  testId: string = "latest",
+  service: string = "service-a",
+  timeWindowMinutes: number = 5
+): Promise<AnalysisResponse> {
+  return fetchProxyData('/api/analyze-failure', {
+    method: 'POST',
+    body: JSON.stringify({
+      test_id: testId,
+      service,
+      time_window_minutes: timeWindowMinutes
+    })
+  });
+}
+
+export async function findSimilarIncidents(metrics: {
+  error_rate: number;
+  p95_latency: number;
+  failed_services_count: number;
+}): Promise<SimilarIncident[]> {
+  return fetchProxyData('/api/similar-incidents', {
+    method: 'POST',
+    body: JSON.stringify(metrics)
+  });
+}
+
+export async function generateReport(testId: string): Promise<{ filename: string }> {
+  return fetchProxyData('/api/generate-report', {
+    method: 'POST',
+    body: JSON.stringify({ test_id: testId })
+  });
+}
+
+export async function listReports(): Promise<Report[]> {
+  return fetchProxyData('/api/reports');
+}

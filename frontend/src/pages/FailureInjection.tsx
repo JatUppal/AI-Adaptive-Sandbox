@@ -1,13 +1,27 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { AlertTriangle, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { api } from "@/lib/api";
+import { api, predictImpact } from "@/lib/api";
+import { PredictionResponse } from "@/types";
+import { PredictionBox } from "@/components/PredictionBox";
 
 const toxicTypes = [
   { value: "latency", label: "Latency", description: "Add delay to requests" },
@@ -21,10 +35,31 @@ export default function FailureInjection() {
   const [selectedProxy, setSelectedProxy] = useState("");
   const [toxicType, setToxicType] = useState("latency");
   const [toxicValue, setToxicValue] = useState("1000");
-  const [jitter, setJitter] = useState("0"); 
+  const [jitter, setJitter] = useState("0");
+  const [prediction, setPrediction] = useState<PredictionResponse | null>(null);
+  const [predictionLoading, setPredictionLoading] = useState(false);
+
+  useEffect(() => {
+    // Debounce 500ms
+    const timer = setTimeout(() => {
+      if (selectedProxy && toxicType && toxicValue) {
+        setPredictionLoading(true);
+        predictImpact({
+          fault_type: toxicType,
+          fault_target: selectedProxy,
+          fault_magnitude: parseInt(toxicValue),
+        })
+          .then(setPrediction)
+          .catch(() => setPrediction(null))
+          .finally(() => setPredictionLoading(false));
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [selectedProxy, toxicType, toxicValue]);
 
   const { data: proxies = [], isLoading } = useQuery({
-    queryKey: ['toxics'],
+    queryKey: ["toxics"],
     queryFn: async () => {
       const result = await api.listToxics();
       return Array.isArray(result) ? result : [];
@@ -33,12 +68,13 @@ export default function FailureInjection() {
   });
 
   const addToxicMutation = useMutation({
-    mutationFn: ({ proxy, toxic }: { proxy: string; toxic: any }) => 
+    mutationFn: ({ proxy, toxic }: { proxy: string; toxic: any }) =>
       api.addToxic(proxy, toxic),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['toxics'] });
+      queryClient.invalidateQueries({ queryKey: ["toxics"] });
       toast.success("Toxic added successfully");
       setToxicValue("1000");
+      setPrediction(null);
     },
     onError: (error: Error) => {
       toast.error(`Failed to add toxic: ${error.message}`);
@@ -46,10 +82,10 @@ export default function FailureInjection() {
   });
 
   const removeToxicMutation = useMutation({
-    mutationFn: ({ proxy, toxic }: { proxy: string; toxic: string }) => 
+    mutationFn: ({ proxy, toxic }: { proxy: string; toxic: string }) =>
       api.removeToxic(proxy, toxic),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['toxics'] });
+      queryClient.invalidateQueries({ queryKey: ["toxics"] });
       toast.success("Toxic removed successfully");
     },
     onError: (error: Error) => {
@@ -72,9 +108,9 @@ export default function FailureInjection() {
       name: `${toxicType}_${Date.now()}`,
       attributes: {
         latency: toxicType === "latency" ? toInt(toxicValue) : undefined,
-        jitter:  toxicType === "latency" ? toInt(jitter)     : undefined, // NEW
-        rate:    toxicType === "bandwidth" ? toInt(toxicValue) : undefined,
-        timeout: toxicType === "timeout"   ? toInt(toxicValue) : undefined,
+        jitter: toxicType === "latency" ? toInt(jitter) : undefined, // NEW
+        rate: toxicType === "bandwidth" ? toInt(toxicValue) : undefined,
+        timeout: toxicType === "timeout" ? toInt(toxicValue) : undefined,
       },
     };
 
@@ -85,14 +121,18 @@ export default function FailureInjection() {
     <div className="space-y-8">
       <div>
         <h2 className="text-3xl font-bold tracking-tight">Failure Injection</h2>
-        <p className="text-muted-foreground mt-1">Chaos engineering with Toxiproxy</p>
+        <p className="text-muted-foreground mt-1">
+          Chaos engineering with Toxiproxy
+        </p>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle>Add Toxic</CardTitle>
-            <CardDescription>Inject failures into your services</CardDescription>
+            <CardDescription>
+              Inject failures into your services
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
@@ -148,12 +188,19 @@ export default function FailureInjection() {
                   placeholder="0"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Randomizes added delay in ±jitter range (e.g., 2500 with latency 4000 → 1500–6500ms)
+                  Randomizes added delay in ±jitter range (e.g., 2500 with
+                  latency 4000 → 1500–6500ms)
                 </p>
               </div>
             )}
-            <Button 
-              onClick={handleAddToxic} 
+            <PredictionBox
+              prediction={prediction}
+              loading={predictionLoading}
+              onProceed={handleAddToxic}
+              onAdjust={() => setPrediction(null)}
+            />
+            <Button
+              onClick={handleAddToxic}
               disabled={addToxicMutation.isPending}
               className="w-full"
               variant="destructive"
@@ -187,13 +234,20 @@ export default function FailureInjection() {
             {!isLoading && proxies && proxies.length > 0 && (
               <div className="space-y-4">
                 {proxies.map((proxy: any) => (
-                  <div key={proxy.name} className="border border-border rounded-lg p-4">
+                  <div
+                    key={proxy.name}
+                    className="border border-border rounded-lg p-4"
+                  >
                     <div className="flex items-center justify-between mb-2">
                       <h4 className="font-medium">{proxy.name}</h4>
-                      <span className={`text-xs px-2 py-1 rounded ${
-                        proxy.enabled ? 'bg-success/20 text-success' : 'bg-muted text-muted-foreground'
-                      }`}>
-                        {proxy.enabled ? 'Enabled' : 'Disabled'}
+                      <span
+                        className={`text-xs px-2 py-1 rounded ${
+                          proxy.enabled
+                            ? "bg-success/20 text-success"
+                            : "bg-muted text-muted-foreground"
+                        }`}
+                      >
+                        {proxy.enabled ? "Enabled" : "Disabled"}
                       </span>
                     </div>
                     <p className="text-xs text-muted-foreground mb-3">
@@ -203,12 +257,14 @@ export default function FailureInjection() {
                     {proxy.toxics && proxy.toxics.length > 0 ? (
                       <div className="space-y-2">
                         {proxy.toxics.map((toxic: any) => (
-                          <div 
+                          <div
                             key={toxic.name}
                             className="flex items-center justify-between p-2 bg-secondary rounded"
                           >
                             <div>
-                              <span className="text-sm font-medium">{toxic.type}</span>
+                              <span className="text-sm font-medium">
+                                {toxic.type}
+                              </span>
                               <p className="text-xs text-muted-foreground">
                                 {JSON.stringify(toxic.attributes)}
                               </p>
@@ -216,10 +272,12 @@ export default function FailureInjection() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => removeToxicMutation.mutate({ 
-                                proxy: proxy.name, 
-                                toxic: toxic.name 
-                              })}
+                              onClick={() =>
+                                removeToxicMutation.mutate({
+                                  proxy: proxy.name,
+                                  toxic: toxic.name,
+                                })
+                              }
                             >
                               <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>
@@ -227,7 +285,9 @@ export default function FailureInjection() {
                         ))}
                       </div>
                     ) : (
-                      <p className="text-sm text-muted-foreground">No active toxics</p>
+                      <p className="text-sm text-muted-foreground">
+                        No active toxics
+                      </p>
                     )}
                   </div>
                 ))}
