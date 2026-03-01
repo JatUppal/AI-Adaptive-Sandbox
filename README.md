@@ -19,6 +19,11 @@ Includes Mock FastAPI microservices instrumented with OpenTelemetry, Prometheus,
 | `mock-slack` | Simulated Slack alerts | http://localhost:5000 |
 | `Kubernetes` | Phase 3 | |
 
+## Preview
+
+![Screenshot](docs/Prometheon.png)
+
+
 ## Start the Frontend
 ### 1) Start the platform (services + prom + toxiproxy)
 
