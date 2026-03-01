@@ -1,4 +1,4 @@
-# AI Adaptive Sandbox (Phase 1.5)
+# AI Adaptive Sandbox (Phase 2.5)
 
 A full observability sandbox for distributed tracing, metrics, and failure simulation.
 
