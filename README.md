@@ -1,6 +1,6 @@
 # AI Adaptive Sandbox
 
-A full observability sandbox for distributed tracing, metrics, and failure simulation. **Phase 2 is Docker shift to Kubernetnes**
+A full observability sandbox for distributed tracing, metrics, and failure simulation.
 
 Includes Mock FastAPI microservices instrumented with OpenTelemetry, Prometheus, Grafana, Jaeger, and Toxiproxy.
 
@@ -17,7 +17,7 @@ Includes Mock FastAPI microservices instrumented with OpenTelemetry, Prometheus,
 | `grafana` | Dashboards & reports | http://localhost:3000 |
 | `toxiproxy` | Failure injection | API: :8474, A→B: :8666, B→C: :8667 |
 | `mock-slack` | Simulated Slack alerts | http://localhost:5000 |
-
+| `Kubernetes` | Phase 2 | |
 
 ## Start the Frontend
 ### 1) Start the platform (services + prom + toxiproxy)
