@@ -1,4 +1,4 @@
-# AI Adaptive Sandbox
+# AI Adaptive Sandbox (Phase 1.5)
 
 A full observability sandbox for distributed tracing, metrics, and failure simulation.
 
@@ -732,12 +732,3 @@ pytest scripts/tests/test_model.py -v
 - `p95_ms`: 95th percentile latency (milliseconds)
 - `toxic_active`: Binary flag (1=chaos active, 0=normal)
 
----
-
-## Acceptance Criteria
-
-- [x] `models/failure_predictor.pkl` and `models/feature_columns.json` exist
-- [x] Model achieves ROC AUC ≥ 0.75 on validation set
-- [x] `scripts/predict_failure.py` returns `risk_score` in [0, 1]
-- [x] All tests pass: `pytest scripts/tests/test_model.py -q`
-- [x] README has runnable quickstart instructions
