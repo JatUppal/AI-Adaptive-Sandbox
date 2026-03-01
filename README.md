@@ -1,8 +1,8 @@
 # AI Adaptive Sandbox
 
-A full observability sandbox for distributed tracing, metrics, and failure simulation.
+A full observability sandbox for distributed tracing, metrics, and failure simulation. **Phase 2 is Docker shift to Kubernetnes**
 
-Includes 3 FastAPI microservices instrumented with OpenTelemetry, Prometheus, Grafana, Jaeger, and Toxiproxy.
+Includes Mock FastAPI microservices instrumented with OpenTelemetry, Prometheus, Grafana, Jaeger, and Toxiproxy.
 
 ## Stack Overview
 
