@@ -17,7 +17,7 @@ Includes Mock FastAPI microservices instrumented with OpenTelemetry, Prometheus,
 | `grafana` | Dashboards & reports | http://localhost:3000 |
 | `toxiproxy` | Failure injection | API: :8474, A→B: :8666, B→C: :8667 |
 | `mock-slack` | Simulated Slack alerts | http://localhost:5000 |
-| `Kubernetes` | Phase 2 | |
+| `Kubernetes` | Phase 3 | |
 
 ## Start the Frontend
 ### 1) Start the platform (services + prom + toxiproxy)
