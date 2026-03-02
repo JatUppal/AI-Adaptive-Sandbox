@@ -21,7 +21,9 @@ Includes Mock FastAPI microservices instrumented with OpenTelemetry, Prometheus,
 
 ## Preview
 
-![Screenshot](docs/Prometheon.png)
+![Screenshot](docs/demo_p1.png)
+![Screenshot](docs/demo_p2.png)
+![Screenshot](docs/demo_p3.png)
 
 
 ## Start the Frontend
