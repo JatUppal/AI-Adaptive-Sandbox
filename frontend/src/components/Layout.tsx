@@ -1,6 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { Activity, PlayCircle, AlertTriangle, Brain, FileText } from "lucide-react";
+import { Activity, PlayCircle, AlertTriangle, Brain, FileText, Loader2 } from "lucide-react";
+import { useReplay } from "@/contexts/ReplayContext";
 
 const navItems = [
   { path: "/", label: "Dashboard", icon: Activity },
@@ -12,6 +13,7 @@ const navItems = [
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
+  const { isRunning } = useReplay();
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -24,12 +26,13 @@ export function Layout({ children }: { children: React.ReactNode }) {
           </h1>
           <p className="text-xs text-muted-foreground mt-1">AI Adaptive Sandbox</p>
         </div>
-        
+
         <nav className="px-3 space-y-1">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path;
-            
+            const isReplayTab = item.path === "/replay";
+
             return (
               <Link
                 key={item.path}
@@ -43,12 +46,26 @@ export function Layout({ children }: { children: React.ReactNode }) {
               >
                 <Icon className="h-4 w-4" />
                 {item.label}
+                {/* Running indicator on Replay tab */}
+                {isReplayTab && isRunning && (
+                  <Loader2 className="h-3 w-3 ml-auto animate-spin text-primary" />
+                )}
               </Link>
             );
           })}
         </nav>
 
-        <div className="absolute bottom-6 left-6 right-6">
+        <div className="absolute bottom-6 left-6 right-6 space-y-3">
+          {/* Replay running banner */}
+          {isRunning && (
+            <div className="p-3 bg-primary/10 border border-primary/20 rounded-md">
+              <div className="flex items-center gap-2 text-xs">
+                <Loader2 className="h-3 w-3 animate-spin text-primary" />
+                <span className="text-primary font-medium">Replay in progress…</span>
+              </div>
+            </div>
+          )}
+
           <div className="p-3 bg-sidebar-accent rounded-md">
             <div className="flex items-center gap-2 text-xs">
               <div className="h-2 w-2 rounded-full bg-success animate-pulse" />
@@ -60,9 +77,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
       {/* Main content */}
       <main className="flex-1 overflow-auto">
-        <div className="p-8">
-          {children}
-        </div>
+        <div className="p-8">{children}</div>
       </main>
     </div>
   );

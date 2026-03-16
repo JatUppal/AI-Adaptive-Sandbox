@@ -91,6 +91,8 @@ services:
     environment:
       - JAEGER_URL=http://jaeger:16686
       - PROMETHEUS_URL=http://prometheus:9090
+      - SCRIPTS_DIR=/scripts
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
     volumes:
       - ./models:/models:ro
       - ./scripts:/scripts:ro

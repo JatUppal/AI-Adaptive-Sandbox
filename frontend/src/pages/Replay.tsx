@@ -1,33 +1,12 @@
-import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PlayCircle, Loader2 } from "lucide-react";
-import { toast } from "sonner";
-import { api } from "@/lib/api";
+import { useReplay } from "@/contexts/ReplayContext";
 
 export default function Replay() {
-  const [requestCount, setRequestCount] = useState(60);
-  const [delay, setDelay] = useState(1000);
-  const [results, setResults] = useState<any>(null);
-
-  const replayMutation = useMutation({
-    mutationFn: () => api.startReplay(requestCount, delay),
-    onSuccess: (data) => {
-      setResults(data);
-      toast.success("Replay completed successfully");
-    },
-    onError: (error: Error) => {
-      toast.error(`Replay failed: ${error.message}`);
-    },
-  });
-
-  const handleStartReplay = () => {
-    setResults(null);
-    replayMutation.mutate();
-  };
+  const { config, setConfig, isRunning, result, error, startReplay } = useReplay();
 
   return (
     <div className="space-y-8">
@@ -48,10 +27,13 @@ export default function Replay() {
               <Input
                 id="count"
                 type="number"
-                value={requestCount}
-                onChange={(e) => setRequestCount(parseInt(e.target.value))}
+                value={config.count}
+                onChange={(e) =>
+                  setConfig({ ...config, count: parseInt(e.target.value) || 1 })
+                }
                 min={1}
                 max={1000}
+                disabled={isRunning}
               />
               <p className="text-xs text-muted-foreground">
                 Number of requests to send (1-1000)
@@ -63,10 +45,13 @@ export default function Replay() {
               <Input
                 id="delay"
                 type="number"
-                value={delay}
-                onChange={(e) => setDelay(parseInt(e.target.value))}
+                value={config.delay}
+                onChange={(e) =>
+                  setConfig({ ...config, delay: parseInt(e.target.value) || 100 })
+                }
                 min={100}
                 max={5000}
+                disabled={isRunning}
               />
               <p className="text-xs text-muted-foreground">
                 Delay between requests (100-5000ms)
@@ -74,12 +59,12 @@ export default function Replay() {
             </div>
 
             <Button
-              onClick={handleStartReplay}
-              disabled={replayMutation.isPending}
+              onClick={startReplay}
+              disabled={isRunning}
               className="w-full"
               size="lg"
             >
-              {replayMutation.isPending ? (
+              {isRunning ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Running Replay...
@@ -100,7 +85,8 @@ export default function Replay() {
             <CardDescription>Replay execution summary</CardDescription>
           </CardHeader>
           <CardContent>
-            {!results && !replayMutation.isPending && (
+            {/* No result yet, not running */}
+            {!result && !isRunning && !error && (
               <div className="text-center py-12 text-muted-foreground">
                 <PlayCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
                 <p>No replay results yet</p>
@@ -108,34 +94,44 @@ export default function Replay() {
               </div>
             )}
 
-            {replayMutation.isPending && (
+            {/* Running */}
+            {isRunning && (
               <div className="text-center py-12">
                 <Loader2 className="h-12 w-12 mx-auto mb-4 animate-spin text-primary" />
                 <p className="text-muted-foreground">Running replay...</p>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Sending {requestCount} requests
+                  Sending {config.count} requests with {config.delay}ms delay
                 </p>
               </div>
             )}
 
-            {results && (
+            {/* Error */}
+            {error && !isRunning && (
+              <div className="text-center py-12">
+                <p className="text-destructive font-medium">Replay failed</p>
+                <p className="text-sm text-muted-foreground mt-1">{error}</p>
+              </div>
+            )}
+
+            {/* Completed results */}
+            {result && !isRunning && (
               <div className="space-y-4">
                 <div className="grid grid-cols-3 gap-4">
                   <div className="text-center p-4 bg-success/10 rounded-lg border border-success/20">
                     <div className="text-2xl font-bold font-mono text-success">
-                      {results.counts?.success || 0}
+                      {result.counts?.success || 0}
                     </div>
                     <div className="text-xs text-muted-foreground mt-1">Success</div>
                   </div>
                   <div className="text-center p-4 bg-destructive/10 rounded-lg border border-destructive/20">
                     <div className="text-2xl font-bold font-mono text-destructive">
-                      {results.counts?.error || 0}
+                      {result.counts?.error || 0}
                     </div>
                     <div className="text-xs text-muted-foreground mt-1">Errors</div>
                   </div>
                   <div className="text-center p-4 bg-primary/10 rounded-lg border border-primary/20">
                     <div className="text-2xl font-bold font-mono text-primary">
-                      {results.counts?.total || 0}
+                      {result.counts?.total || 0}
                     </div>
                     <div className="text-xs text-muted-foreground mt-1">Total</div>
                   </div>
@@ -144,9 +140,10 @@ export default function Replay() {
                 <div className="p-4 bg-secondary rounded-lg">
                   <div className="text-sm font-medium mb-2">Success Rate</div>
                   <div className="text-2xl font-bold font-mono text-primary">
-                    {results.counts ? 
-                      ((results.counts.success / results.counts.total) * 100).toFixed(1) 
-                      : 0}%
+                    {result.counts
+                      ? ((result.counts.success / result.counts.total) * 100).toFixed(1)
+                      : 0}
+                    %
                   </div>
                 </div>
               </div>
