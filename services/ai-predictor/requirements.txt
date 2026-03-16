@@ -4,3 +4,4 @@ requests
 prometheus_client
 scikit-learn
 joblib
+openai==2.12.0

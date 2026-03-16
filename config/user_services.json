@@ -1,0 +1,14 @@
+{
+  "user_projects": {
+    "default": {
+      "services": ["service-a", "service-b", "service-c"],
+      "jaeger_url": "http://localhost:16686",
+      "trace_retention_hours": 24
+    },
+    "user_custom_project": {
+      "services": ["api-gateway", "auth-service", "payment-service", "inventory-service"],
+      "jaeger_url": "http://jaeger.user-domain.com:16686",
+      "trace_retention_hours": 72
+    }
+  }
+}

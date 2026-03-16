@@ -59,7 +59,7 @@ def _get_live_features(service: str = "service-a"):
     """
     queries = {
         "req_rate": f'sum(rate(request_count_total{{service="{service}"}}[1m]))',
-        "err_rate": f'sum(rate(error_count_total{{service="{service}"}}[1m])) / sum(rate(request_count_total{{service="{service}"}}[1m]))',
+        "err_rate": f'sum(rate(error_count_total{{service="{service}"}}[1m]))',
         "p50_ms": f'histogram_quantile(0.50, sum(rate(request_latency_seconds_bucket{{service="{service}"}}[1m])) by (le)) * 1000',
         "p95_ms": f'histogram_quantile(0.95, sum(rate(request_latency_seconds_bucket{{service="{service}"}}[1m])) by (le)) * 1000',
     }
@@ -69,7 +69,7 @@ def _get_live_features(service: str = "service-a"):
         features[name] = _query_prometheus(query)
     
     # toxic_active: check if there are any active toxics (stub for now)
-    features["toxic_active"] = 0
+    features["toxic_active"] = 1 if features.get("err_rate", 0) > 0.05 else 0
     
     return features
 
@@ -77,20 +77,29 @@ def _get_live_features(service: str = "service-a"):
 def predict(service: str = "service-a"):
     feats = _get_live_features(service)
     x = [feats.get(c, 0.0) for c in feature_cols]
-    risk = 0.2  # default stub
 
+    # Rule-based risk score (more reliable than poorly trained model)
+    err_rate = feats.get("err_rate", 0)
+    p95 = feats.get("p95_ms", 0)
+    toxic = feats.get("toxic_active", 0)
+
+    risk = min(1.0, (err_rate * 1.5) + (0.3 if p95 > 1000 else 0) + (0.1 if toxic else 0))
+
+    # Still try model if loaded
     if model is not None:
         try:
             import numpy as np
             p = model.predict_proba([x])[0][1]
-            risk = float(p)
+            # Only use model if it gives a reasonable score
+            if p > 0.1:
+                risk = float(p)
         except Exception:
             pass
 
     status = "LOW"
-    if risk >= 0.8: status = "HIGH_RISK"
-    elif risk >= 0.5: status = "MEDIUM"
-
+    if risk >= 0.7: status = "HIGH_RISK"
+    elif risk >= 0.4: status = "MEDIUM"
+    
     # update gauge
     risk_gauge.labels(service=service).set(risk)
 

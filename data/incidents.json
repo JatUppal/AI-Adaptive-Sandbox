@@ -1,0 +1,62 @@
+[
+    {
+        "incident_id": "inc_001",
+        "date": "2024-11-15",
+        "duration_minutes": 45,
+        "root_cause": "connection_timeout",
+        "metrics": {
+            "error_rate": 0.18,
+            "p95_latency": 1250,
+            "failed_services_count": 1
+        },
+        "description": "Service A timeouts to Service B due to network latency"
+    },
+    {
+        "incident_id": "inc_002",
+        "date": "2024-11-20",
+        "duration_minutes": 120,
+        "root_cause": "bad_gateway",
+        "metrics": {
+            "error_rate": 0.45,
+            "p95_latency": 2100,
+            "failed_services_count": 2
+        },
+        "description": "Service B returned 502 errors under high load"
+    },
+    {
+        "incident_id": "inc_003",
+        "date": "2024-11-25",
+        "duration_minutes": 30,
+        "root_cause": "service_unavailable",
+        "metrics": {
+            "error_rate": 0.25,
+            "p95_latency": 1800,
+            "failed_services_count": 1
+        },
+        "description": "Service C became unresponsive during deployment"
+    },
+    {
+        "incident_id": "inc_004",
+        "date": "2024-12-01",
+        "duration_minutes": 90,
+        "root_cause": "connection_timeout",
+        "metrics": {
+            "error_rate": 0.22,
+            "p95_latency": 1400,
+            "failed_services_count": 2
+        },
+        "description": "Network congestion caused cascading timeouts"
+    },
+    {
+        "incident_id": "inc_005",
+        "date": "2024-12-05",
+        "duration_minutes": 15,
+        "root_cause": "internal_server_error",
+        "metrics": {
+            "error_rate": 0.10,
+            "p95_latency": 900,
+            "failed_services_count": 1
+        },
+        "description": "Database connection pool exhausted"
+    }
+]
