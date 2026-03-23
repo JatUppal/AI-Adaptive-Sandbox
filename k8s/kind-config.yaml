@@ -1,0 +1,36 @@
+# kind-config.yaml — Prometheon K8s cluster
+# Creates a single-node cluster with port mappings for local access
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: prometheon
+nodes:
+  - role: control-plane
+    extraPortMappings:
+      # RCA API
+      - containerPort: 30800
+        hostPort: 8000
+        protocol: TCP
+      # Jaeger UI
+      - containerPort: 30686
+        hostPort: 16686
+        protocol: TCP
+      # Prometheus
+      - containerPort: 30090
+        hostPort: 9090
+        protocol: TCP
+      # Grafana
+      - containerPort: 30300
+        hostPort: 3000
+        protocol: TCP
+      # Toxiproxy admin (default tenant)
+      - containerPort: 30474
+        hostPort: 8474
+        protocol: TCP
+      # Service-A ingress (default tenant)
+      - containerPort: 30081
+        hostPort: 8081
+        protocol: TCP
+      # Sandbox Manager API
+      - containerPort: 30900
+        hostPort: 9000
+        protocol: TCP

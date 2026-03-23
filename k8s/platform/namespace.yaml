@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: prometheon-platform
+  labels:
+    app.kubernetes.io/part-of: prometheon
+    prometheon.io/role: platform

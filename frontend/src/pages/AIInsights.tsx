@@ -1,328 +1,153 @@
-import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
-import {
-  Brain,
-  AlertTriangle,
-  CheckCircle,
-  Search,
-  Loader2,
-  ShieldAlert,
-  Activity,
-  Clock,
-  Sparkles,
-  Lightbulb,
-  Hash,
-} from "lucide-react";
-import { toast } from "sonner";
-import { api, type RcaAnalysis, type RootCause } from "@/lib/api";
-
-function confidenceColor(c: number) {
-  if (c >= 0.7) return "destructive";
-  if (c >= 0.4) return "secondary";
-  return "outline";
-}
-
-function statusBadge(status: string) {
-  if (status === "failed")
-    return (
-      <Badge variant="destructive" className="text-xs">
-        <ShieldAlert className="h-3 w-3 mr-1" />
-        Failures Detected
-      </Badge>
-    );
-  return (
-    <Badge className="bg-success/20 text-success border-success/30 text-xs">
-      <CheckCircle className="h-3 w-3 mr-1" />
-      Healthy
-    </Badge>
-  );
-}
-
-function issuePretty(issue: string) {
-  return issue.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-}
-
-function RootCauseCard({ cause }: { cause: RootCause }) {
-  return (
-    <div className="border border-border rounded-lg p-5 hover:border-primary/40 transition-colors">
-      {/* Header row */}
-      <div className="flex items-start justify-between mb-3">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center justify-center h-8 w-8 rounded-full bg-destructive/15 border border-destructive/30 text-destructive font-bold text-sm font-mono">
-            {cause.rank}
-          </div>
-          <div>
-            <h4 className="font-semibold">{issuePretty(cause.issue)}</h4>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              <span className="font-mono">{cause.service}</span>
-              {" · "}
-              <span className="font-mono">{cause.details.affected_span}</span>
-            </p>
-          </div>
-        </div>
-        <Badge variant={confidenceColor(cause.confidence)} className="font-mono text-xs shrink-0">
-          {(cause.confidence * 100).toFixed(0)}% confidence
-        </Badge>
-      </div>
-
-      {/* Evidence */}
-      <div className="ml-11 space-y-2">
-        <p className="text-sm text-muted-foreground">{cause.evidence}</p>
-
-        <div className="flex flex-wrap gap-x-5 gap-y-1 text-xs text-muted-foreground">
-          <span className="flex items-center gap-1">
-            <Clock className="h-3 w-3" />
-            Avg {cause.details.avg_duration_ms.toFixed(0)}ms
-          </span>
-          <span className="flex items-center gap-1">
-            <Hash className="h-3 w-3" />
-            {cause.trace_ids.length} trace{cause.trace_ids.length !== 1 ? "s" : ""}
-          </span>
-        </div>
-
-        {cause.details.error_message && cause.details.error_message !== "Error occurred" && (
-          <p className="text-xs font-mono text-destructive/80 bg-destructive/5 rounded px-2 py-1 border border-destructive/10">
-            {cause.details.error_message}
-          </p>
-        )}
-      </div>
-    </div>
-  );
-}
+import { useState } from 'react';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { api, type RcaAnalysis, type RootCause } from '../lib/api';
+import { useSandbox } from '../contexts/SandboxContext';
+import NoSandbox from '../components/NoSandbox';
 
 export default function AIInsights() {
-  const [service, setService] = useState("service-a");
-  const [timeWindow, setTimeWindow] = useState("5");
+  const { activeSandbox } = useSandbox();
+  const sid = activeSandbox?.sandbox_id;
+
+  const [service, setService] = useState('');
+  const [timeWindow, setTimeWindow] = useState(5);
   const [analysis, setAnalysis] = useState<RcaAnalysis | null>(null);
 
-  const analyzeMutation = useMutation({
-    mutationFn: () => api.analyzeFailure(service, parseInt(timeWindow)),
-    onSuccess: (data) => {
-      setAnalysis(data);
-      if (data.status === "failed") {
-        toast.warning(`Found ${data.root_causes.length} root cause(s) across ${data.failed_traces} failed traces`);
-      } else {
-        toast.success("System is healthy — no failures detected");
-      }
-    },
-    onError: (error: Error) => {
-      toast.error(`Analysis failed: ${error.message}`);
-    },
+  // Fetch dynamic service names from sandbox config
+  const { data: sandboxConfig } = useQuery({
+    queryKey: ['sandbox-config', sid],
+    queryFn: () => api.getSandboxConfig(sid!),
+    enabled: !!sid,
   });
 
+  const serviceNames = sandboxConfig?.services?.map((s: any) => s.name) || [];
+
+  // Auto-select first service
+  if (!service && serviceNames.length > 0) {
+    setService(serviceNames[0]);
+  }
+
+  const analyzeMutation = useMutation({
+    mutationFn: () => api.analyzeFailure(sid!, service, timeWindow),
+    onSuccess: (data) => setAnalysis(data),
+  });
+
+  if (!activeSandbox) {
+    return <NoSandbox title="No sandbox selected" description="Create a sandbox to analyze failure traces with AI-powered root cause analysis." />;
+  }
+
   return (
-    <div className="space-y-8">
-      {/* Page header */}
+    <div className="space-y-6">
       <div>
-        <h2 className="text-3xl font-bold tracking-tight">AI Insights</h2>
-        <p className="text-muted-foreground mt-1">Root cause analysis powered by trace intelligence</p>
+        <h1 className="text-2xl font-bold text-white">AI Insights</h1>
+        <p className="text-zinc-400 text-sm mt-1">
+          Root cause analysis for <span className="text-emerald-400">{activeSandbox.name}</span>
+        </p>
       </div>
 
-      {/* Controls */}
-      <Card>
-        <CardHeader className="pb-4">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Search className="h-4 w-4 text-primary" />
-            Run Analysis
-          </CardTitle>
-          <CardDescription>Analyze recent Jaeger traces to identify failure root causes</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap items-end gap-4">
-            <div className="space-y-2 min-w-[160px]">
-              <Label htmlFor="service">Service</Label>
-              <Select value={service} onValueChange={setService}>
-                <SelectTrigger id="service">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="service-a">service-a</SelectItem>
-                  <SelectItem value="service-b">service-b</SelectItem>
-                  <SelectItem value="service-c">service-c</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+      {/* Run analysis */}
+      <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
+        <h3 className="text-white font-semibold mb-1">Run Analysis</h3>
+        <p className="text-zinc-500 text-sm mb-4">Analyze recent Jaeger traces to identify failure root causes</p>
 
-            <div className="space-y-2 min-w-[160px]">
-              <Label htmlFor="window">Time Window</Label>
-              <Select value={timeWindow} onValueChange={setTimeWindow}>
-                <SelectTrigger id="window">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="2">Last 2 minutes</SelectItem>
-                  <SelectItem value="5">Last 5 minutes</SelectItem>
-                  <SelectItem value="10">Last 10 minutes</SelectItem>
-                  <SelectItem value="30">Last 30 minutes</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <Button
-              onClick={() => analyzeMutation.mutate()}
-              disabled={analyzeMutation.isPending}
-              size="lg"
-            >
-              {analyzeMutation.isPending ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Analyzing…
-                </>
+        <div className="flex items-end gap-4 flex-wrap">
+          <div>
+            <label className="block text-sm text-zinc-400 mb-1.5">Service</label>
+            <select value={service} onChange={(e) => setService(e.target.value)}
+              className="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/40">
+              {serviceNames.length > 0 ? (
+                serviceNames.map((n: string) => <option key={n} value={n}>{n}</option>)
               ) : (
-                <>
-                  <Brain className="mr-2 h-4 w-4" />
-                  Analyze Traces
-                </>
+                <option value="">Loading services...</option>
               )}
-            </Button>
+            </select>
           </div>
-        </CardContent>
-      </Card>
+          <div>
+            <label className="block text-sm text-zinc-400 mb-1.5">Time Window</label>
+            <select value={timeWindow} onChange={(e) => setTimeWindow(Number(e.target.value))}
+              className="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/40">
+              <option value={2}>Last 2 minutes</option>
+              <option value={5}>Last 5 minutes</option>
+              <option value={10}>Last 10 minutes</option>
+              <option value={30}>Last 30 minutes</option>
+            </select>
+          </div>
+          <button onClick={() => analyzeMutation.mutate()} disabled={analyzeMutation.isPending || !service}
+            className="bg-emerald-600 hover:bg-emerald-500 disabled:bg-zinc-700 text-white text-sm font-medium px-5 py-2 rounded-lg transition-colors flex items-center gap-2">
+            {analyzeMutation.isPending ? (
+              <><div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />Analyzing...</>
+            ) : 'Analyze Traces'}
+          </button>
+        </div>
+        {analyzeMutation.isError && <p className="text-red-400 text-sm mt-3">{(analyzeMutation.error as Error).message}</p>}
+      </div>
 
-      {/* Loading state */}
-      {analyzeMutation.isPending && (
-        <Card>
-          <CardContent className="flex flex-col items-center py-16">
-            <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
-            <p className="text-muted-foreground">Fetching traces from Jaeger and analyzing patterns…</p>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Empty / no-run state */}
+      {/* Empty state */}
       {!analysis && !analyzeMutation.isPending && (
-        <Card>
-          <CardContent className="flex flex-col items-center py-16 text-muted-foreground">
-            <Brain className="h-12 w-12 mb-4 opacity-40" />
-            <p>No analysis run yet</p>
-            <p className="text-sm mt-1">Select a service and time window, then click Analyze Traces</p>
-          </CardContent>
-        </Card>
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-12 text-center">
+          <div className="text-zinc-500 text-sm">No analysis run yet. Select a service and time window, then click Analyze Traces.</div>
+        </div>
       )}
 
       {/* Results */}
-      {analysis && !analyzeMutation.isPending && (
+      {analysis && (
         <>
-          {/* Summary cards */}
-          <div className="grid gap-4 md:grid-cols-4">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Status</CardTitle>
-              </CardHeader>
-              <CardContent>{statusBadge(analysis.status)}</CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Error Rate</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className={`text-2xl font-bold font-mono ${analysis.error_rate > 0 ? "text-destructive" : "text-success"}`}>
-                  {(analysis.error_rate * 100).toFixed(1)}%
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {analysis.failed_traces} / {analysis.total_traces} traces
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Root Causes</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold font-mono">{analysis.root_causes.length}</div>
-                <p className="text-xs text-muted-foreground mt-1">Distinct failure patterns</p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Analysis ID</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-sm font-mono truncate">{analysis.test_id}</div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {analysis.service} · {analysis.time_window_minutes}m window
-                </p>
-              </CardContent>
-            </Card>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+              <div className="text-xs text-zinc-500">Status</div>
+              <div className={`text-lg font-bold mt-1 ${analysis.status === 'success' ? 'text-emerald-400' : 'text-red-400'}`}>{analysis.status}</div>
+            </div>
+            <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+              <div className="text-xs text-zinc-500">Error rate</div>
+              <div className="text-lg font-bold text-white mt-1">{(analysis.error_rate * 100).toFixed(1)}%</div>
+            </div>
+            <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+              <div className="text-xs text-zinc-500">Total traces</div>
+              <div className="text-lg font-bold text-white mt-1">{analysis.total_traces}</div>
+            </div>
+            <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+              <div className="text-xs text-zinc-500">Root causes</div>
+              <div className="text-lg font-bold text-amber-400 mt-1">{analysis.root_causes?.length || 0}</div>
+            </div>
           </div>
 
-          {/* AI Summary */}
-          <Card className="border-primary/30 bg-primary/[0.03]">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Sparkles className="h-4 w-4 text-primary" />
-                AI Summary
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm leading-relaxed">{analysis.ai_summary}</p>
-            </CardContent>
-          </Card>
-
-          {/* Root causes */}
-          {analysis.root_causes.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <AlertTriangle className="h-5 w-5 text-destructive" />
-                  Root Causes
-                  <Badge variant="outline" className="ml-auto font-mono text-xs">
-                    Ranked by confidence
-                  </Badge>
-                </CardTitle>
-                <CardDescription>Failure patterns identified from Jaeger traces</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {analysis.root_causes.map((cause) => (
-                  <RootCauseCard key={`${cause.service}-${cause.issue}`} cause={cause} />
-                ))}
-              </CardContent>
-            </Card>
+          {analysis.ai_summary && (
+            <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
+              <h3 className="text-white font-semibold mb-2">AI Summary</h3>
+              <p className="text-zinc-300 text-sm leading-relaxed">{analysis.ai_summary}</p>
+              {analysis._cached && <span className="inline-block mt-2 text-xs text-zinc-600 bg-zinc-800 px-2 py-0.5 rounded">cached result</span>}
+            </div>
           )}
 
-          {/* Recommendations */}
-          {analysis.recommendations.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Lightbulb className="h-4 w-4 text-warning" />
-                  Recommendations
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {analysis.recommendations.map((rec, i) => (
-                  <div
-                    key={i}
-                    className="flex items-start gap-3 p-3 rounded-lg bg-secondary/40 border border-border text-sm"
-                  >
-                    <span className="text-muted-foreground font-mono text-xs mt-0.5">{i + 1}.</span>
-                    <span>{rec}</span>
+          {analysis.root_causes && analysis.root_causes.length > 0 && (
+            <div className="space-y-3">
+              <h3 className="text-white font-semibold">Root Causes (ranked)</h3>
+              {analysis.root_causes.map((rc: RootCause, i: number) => (
+                <div key={i} className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs text-zinc-500">#{rc.rank || i + 1}</span>
+                      <code className="text-emerald-400 text-sm bg-emerald-500/10 px-2 py-0.5 rounded">{rc.service}</code>
+                      <span className="text-white text-sm font-medium">{rc.issue}</span>
+                    </div>
+                    <span className={`text-sm font-mono font-bold ${rc.confidence >= 0.8 ? 'text-red-400' : rc.confidence >= 0.5 ? 'text-amber-400' : 'text-zinc-400'}`}>
+                      {(rc.confidence * 100).toFixed(0)}%
+                    </span>
                   </div>
-                ))}
-              </CardContent>
-            </Card>
+                  <p className="text-zinc-400 text-sm">{rc.evidence}</p>
+                </div>
+              ))}
+            </div>
           )}
 
-          {/* Healthy state — no failures */}
-          {analysis.status === "success" && analysis.root_causes.length === 0 && (
-            <Card className="border-success/30">
-              <CardContent className="flex flex-col items-center py-12">
-                <CheckCircle className="h-12 w-12 text-success mb-4" />
-                <p className="font-medium text-lg">All Clear</p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  No failures detected in the last {analysis.time_window_minutes} minutes for{" "}
-                  <span className="font-mono">{analysis.service}</span>
-                </p>
-              </CardContent>
-            </Card>
+          {analysis.recommendations && analysis.recommendations.length > 0 && (
+            <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
+              <h3 className="text-white font-semibold mb-3">Recommendations</h3>
+              <ul className="space-y-2">
+                {analysis.recommendations.map((rec: string, i: number) => (
+                  <li key={i} className="text-zinc-300 text-sm flex gap-2"><span className="text-emerald-500 mt-0.5">→</span>{rec}</li>
+                ))}
+              </ul>
+            </div>
           )}
         </>
       )}
