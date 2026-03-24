@@ -105,7 +105,7 @@ export default function FailureInjection() {
   const proxyOptions = toxicsData
     ? Object.keys(toxicsData).map((name) => {
         const parts = name.split('_to_');
-        const label = parts.length === 2 ? `${parts[0]} → ${parts[1]}` : name;
+        const label = parts.length === 2 ? `${parts[0]} → ${parts[1]} (${name})` : name;
         return { value: name, label };
       })
     : [];
@@ -205,8 +205,9 @@ export default function FailureInjection() {
               <label className="block text-sm text-zinc-400 mb-1.5">{field.label}</label>
               <input
                 type="number"
-                value={fieldValues[field.name] ?? field.default}
-                onChange={(e) => setFieldValues({ ...fieldValues, [field.name]: Number(e.target.value) })}
+                value={fieldValues[field.name] ?? ''}
+                onChange={(e) => setFieldValues({ ...fieldValues, [field.name]: e.target.value === '' ? 0 : Number(e.target.value) })}
+                onFocus={(e) => e.target.select()}
                 className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-white text-sm
                            focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
               />

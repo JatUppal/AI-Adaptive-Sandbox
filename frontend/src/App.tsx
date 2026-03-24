@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 // Contexts
 import { AuthProvider } from './contexts/AuthContext';
 import { SandboxProvider } from './contexts/SandboxContext';
+import { ReplayProvider } from './contexts/ReplayContext';
 
 // Components
 import Layout from './components/Layout';
@@ -33,30 +34,32 @@ export default function App() {
       <BrowserRouter>
         <AuthProvider>
           <SandboxProvider>
-            <Routes>
-              {/* Public routes */}
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
+            <ReplayProvider>
+              <Routes>
+                {/* Public routes */}
+                <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
 
-              {/* Protected routes */}
-              <Route
-                path="/*"
-                element={
-                  <ProtectedRoute>
-                    <Layout>
-                      <Routes>
-                        <Route path="/" element={<Dashboard />} />
-                        <Route path="/sandboxes" element={<Sandboxes />} />
-                        <Route path="/injection" element={<FailureInjection />} />
-                        <Route path="/replay" element={<Replay />} />
-                        <Route path="/insights" element={<AIInsights />} />
-                        <Route path="/history" element={<TestHistory />} />
-                      </Routes>
-                    </Layout>
-                  </ProtectedRoute>
-                }
-              />
-            </Routes>
+                {/* Protected routes */}
+                <Route
+                  path="/*"
+                  element={
+                    <ProtectedRoute>
+                      <Layout>
+                        <Routes>
+                          <Route path="/" element={<Dashboard />} />
+                          <Route path="/sandboxes" element={<Sandboxes />} />
+                          <Route path="/injection" element={<FailureInjection />} />
+                          <Route path="/replay" element={<Replay />} />
+                          <Route path="/insights" element={<AIInsights />} />
+                          <Route path="/history" element={<TestHistory />} />
+                        </Routes>
+                      </Layout>
+                    </ProtectedRoute>
+                  }
+                />
+              </Routes>
+            </ReplayProvider>
           </SandboxProvider>
         </AuthProvider>
       </BrowserRouter>

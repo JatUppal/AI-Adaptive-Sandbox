@@ -1,21 +1,11 @@
-import { useState } from 'react';
-import { useMutation } from '@tanstack/react-query';
-import { api } from '../lib/api';
 import { useSandbox } from '../contexts/SandboxContext';
+import { useReplay } from '../contexts/ReplayContext';
 import NoSandbox from '../components/NoSandbox';
 
 export default function Replay() {
   const { activeSandbox } = useSandbox();
   const sid = activeSandbox?.sandbox_id;
-
-  const [count, setCount] = useState(30);
-  const [delay, setDelay] = useState(500);
-  const [result, setResult] = useState<any>(null);
-
-  const replayMutation = useMutation({
-    mutationFn: () => api.startReplay(sid!, count, delay),
-    onSuccess: (data) => setResult(data),
-  });
+  const { config, setConfig, isRunning, result, error, startReplay, clearResult } = useReplay();
 
   if (!activeSandbox) {
     return <NoSandbox title="No sandbox selected" description="Create a sandbox to replay traffic through your service mesh." />;
@@ -26,7 +16,7 @@ export default function Replay() {
       <div>
         <h1 className="text-2xl font-bold text-white">Replay</h1>
         <p className="text-zinc-400 text-sm mt-1">
-          Send traffic to <span className="text-emerald-400">{activeSandbox.name}</span>'s service-a
+          Send traffic to <span className="text-emerald-400">{activeSandbox.name}</span>'s entry point
         </p>
       </div>
 
@@ -39,11 +29,12 @@ export default function Replay() {
             <label className="block text-sm text-zinc-400 mb-1.5">Request count</label>
             <input
               type="number"
-              value={count}
-              onChange={(e) => setCount(Number(e.target.value))}
+              value={config.count || ''}
+              onChange={(e) => setConfig({ ...config, count: e.target.value === '' ? 0 : Number(e.target.value) })}
+              onFocus={(e) => e.target.select()}
               min={1}
               max={500}
-              disabled={replayMutation.isPending}
+              disabled={isRunning}
               className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-white text-sm
                          disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
             />
@@ -52,11 +43,12 @@ export default function Replay() {
             <label className="block text-sm text-zinc-400 mb-1.5">Delay between requests (ms)</label>
             <input
               type="number"
-              value={delay}
-              onChange={(e) => setDelay(Number(e.target.value))}
+              value={config.delay || ''}
+              onChange={(e) => setConfig({ ...config, delay: e.target.value === '' ? 0 : Number(e.target.value) })}
+              onFocus={(e) => e.target.select()}
               min={0}
               max={5000}
-              disabled={replayMutation.isPending}
+              disabled={isRunning}
               className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-white text-sm
                          disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
             />
@@ -65,17 +57,17 @@ export default function Replay() {
 
         <button
           onClick={() => {
-            setResult(null);
-            replayMutation.mutate();
+            clearResult();
+            startReplay(sid!);
           }}
-          disabled={replayMutation.isPending}
+          disabled={isRunning}
           className="bg-emerald-600 hover:bg-emerald-500 disabled:bg-zinc-700 text-white text-sm font-medium px-5 py-2.5
                      rounded-lg transition-colors flex items-center gap-2"
         >
-          {replayMutation.isPending ? (
+          {isRunning ? (
             <>
               <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              Sending {count} requests...
+              Sending {config.count} requests...
             </>
           ) : (
             <>
@@ -88,8 +80,8 @@ export default function Replay() {
           )}
         </button>
 
-        {replayMutation.isError && (
-          <p className="text-red-400 text-sm">{(replayMutation.error as Error).message}</p>
+        {error && (
+          <p className="text-red-400 text-sm">{error}</p>
         )}
       </div>
 
@@ -141,6 +133,15 @@ export default function Replay() {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Running indicator when on page */}
+      {isRunning && !result && (
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-8 text-center">
+          <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+          <p className="text-zinc-400 text-sm">Sending requests to your sandbox...</p>
+          <p className="text-zinc-500 text-xs mt-1">You can navigate to other pages — results will be here when you come back.</p>
         </div>
       )}
     </div>

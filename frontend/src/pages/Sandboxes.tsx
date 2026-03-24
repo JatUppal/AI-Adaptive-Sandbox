@@ -115,8 +115,9 @@ function ServiceBuilder({
             <div>
               <label className="block text-xs text-zinc-500 mb-1">Port</label>
               <input
-                type="number" value={svc.port}
-                onChange={(e) => updateService(i, 'port', Number(e.target.value))}
+                type="number" value={svc.port || ''}
+                onChange={(e) => updateService(i, 'port', e.target.value === '' ? 0 : Number(e.target.value))}
+                onFocus={(e) => e.target.select()}
                 min={1} max={65535}
                 className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
               />
