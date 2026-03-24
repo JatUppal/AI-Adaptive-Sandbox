@@ -190,6 +190,8 @@ async def analyze_failure(
         service = payload.get("service", "service-a")
         minutes = payload.get("time_window_minutes", 5)
         tenant_id = current_user["tenant_id"]
+        sandbox_id = payload.get("sandbox_id", "")
+        jaeger_service = f"{service}-{sandbox_id}" if sandbox_id else service
 
         # 1. Check cache
         cached = await get_cached_analysis(tenant_id, service, minutes)
@@ -198,7 +200,7 @@ async def analyze_failure(
             return cached
 
         # 2. Fetch traces from Jaeger
-        traces = fetch_traces(service, minutes)
+        traces = fetch_traces(jaeger_service, minutes)
         failed_spans = get_failed_spans(traces)
 
         # 3. Run full RCA if analyzer is available

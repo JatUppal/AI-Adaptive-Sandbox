@@ -584,6 +584,10 @@ def _create_toxiproxy_init_job(namespace: str, sandbox_id: str, proxy_map: dict)
                             image="busybox:1.36",
                             image_pull_policy="IfNotPresent",
                             command=["/bin/sh", "-c", init_cmd],
+                            resources=client.V1ResourceRequirements(
+                                requests={"memory": "32Mi", "cpu": "50m"},
+                                limits={"memory": "64Mi", "cpu": "100m"},
+                            ),
                         )
                     ],
                     restart_policy="OnFailure",

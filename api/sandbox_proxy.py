@@ -158,11 +158,23 @@ async def _prom_query(query: str):
         return float(r[0]["value"][1]) if r and "value" in r[0] else 0.0
 
 async def _prom_range(query: str, dur: str = "20m", step: str = "60s") -> list:
+    import time
+    import math
+    end = int(time.time())
+    # Parse duration string to seconds
+    dur_seconds = int(dur.replace("m", "")) * 60
+    start = end - dur_seconds
     async with httpx.AsyncClient(timeout=5.0) as client:
-        resp = await client.get(f"{PROMETHEUS_URL}/api/v1/query_range", params={"query": query, "start": f"now-{dur}", "end": "now", "step": step})
+        resp = await client.get(f"{PROMETHEUS_URL}/api/v1/query_range", params={"query": query, "start": str(start), "end": str(end), "step": step})
         if resp.status_code != 200: return []
         r = resp.json().get("data",{}).get("result",[])
-        return [{"time": v[0], "value": float(v[1])} for v in r[0].get("values",[])] if r else []
+        values = []
+        for v in (r[0].get("values",[]) if r else []):
+            fval = float(v[1])
+            if math.isnan(fval) or math.isinf(fval):
+                fval = 0.0
+            values.append({"time": v[0], "value": fval})
+        return values
 
 async def _entry_otel(sid: str) -> str:
     info = await _get_sandbox_info(sid)
@@ -171,33 +183,33 @@ async def _entry_otel(sid: str) -> str:
 @router.get("/{sandbox_id}/prom/requests")
 async def prom_requests(sandbox_id: str, current_user: dict = Depends(get_current_user)):
     s = await _entry_otel(sandbox_id)
-    v = await _prom_query(f'rate(prometheon_http_requests_total{{service_name="{s}"}}[1m])')
+    v = await _prom_query(f'sum(rate(prometheon_calls_total{{service_name="{s}"}}[5m]))')
     return {"value": round(v or 0, 3), "label": "Last scrape"}
 
 @router.get("/{sandbox_id}/prom/errors")
 async def prom_errors(sandbox_id: str, current_user: dict = Depends(get_current_user)):
     s = await _entry_otel(sandbox_id)
-    t = await _prom_query(f'rate(prometheon_http_requests_total{{service_name="{s}"}}[1m])')
-    e = await _prom_query(f'rate(prometheon_http_requests_total{{service_name="{s}",status_code=~"5.."}}[1m])')
+    t = await _prom_query(f'sum(rate(prometheon_calls_total{{service_name="{s}"}}[5m]))')
+    e = await _prom_query(f'sum(rate(prometheon_calls_total{{service_name="{s}",status_code="STATUS_CODE_ERROR"}}[5m]))')
     return {"value": round(((e or 0)/(t if t else 1))*100, 2), "label": "Last scrape"}
 
 @router.get("/{sandbox_id}/prom/p95")
 async def prom_p95(sandbox_id: str, current_user: dict = Depends(get_current_user)):
     s = await _entry_otel(sandbox_id)
-    v = await _prom_query(f'histogram_quantile(0.95, rate(prometheon_http_request_duration_seconds_bucket{{service_name="{s}"}}[1m])) * 1000')
+    v = await _prom_query(f'histogram_quantile(0.95, sum(rate(prometheon_duration_milliseconds_bucket{{service_name="{s}"}}[5m])) by (le))')
     return {"value": round(v or 0, 1), "label": "Last scrape"}
 
 @router.get("/{sandbox_id}/prom/requests/range")
 async def prom_requests_range(sandbox_id: str, current_user: dict = Depends(get_current_user)):
     s = await _entry_otel(sandbox_id)
-    return await _prom_range(f'rate(prometheon_http_requests_total{{service_name="{s}"}}[1m])')
+    return await _prom_range(f'sum(rate(prometheon_calls_total{{service_name="{s}"}}[5m]))')
 
 @router.get("/{sandbox_id}/prom/errors/range")
 async def prom_errors_range(sandbox_id: str, current_user: dict = Depends(get_current_user)):
     s = await _entry_otel(sandbox_id)
-    return await _prom_range(f'rate(prometheon_http_requests_total{{service_name="{s}",status_code=~"5.."}}[1m])')
+    return await _prom_range(f'sum(rate(prometheon_calls_total{{service_name="{s}",status_code="STATUS_CODE_ERROR"}}[5m]))')
 
 @router.get("/{sandbox_id}/prom/p95/range")
 async def prom_p95_range(sandbox_id: str, current_user: dict = Depends(get_current_user)):
     s = await _entry_otel(sandbox_id)
-    return await _prom_range(f'histogram_quantile(0.95, rate(prometheon_http_request_duration_seconds_bucket{{service_name="{s}"}}[1m])) * 1000')
+    return await _prom_range(f'histogram_quantile(0.95, sum(rate(prometheon_duration_milliseconds_bucket{{service_name="{s}"}}[5m])) by (le))')

@@ -48,10 +48,7 @@ const toxicTypes = [
   },
 ];
 
-const proxyOptions = [
-  { value: 'a_to_b', label: 'A → B (a_to_b)' },
-  { value: 'b_to_c', label: 'B → C (b_to_c)' },
-];
+// Proxy options are derived dynamically from toxicsData (see component body)
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -81,7 +78,7 @@ export default function FailureInjection() {
   const sid = activeSandbox?.sandbox_id;
   const queryClient = useQueryClient();
 
-  const [selectedProxy, setSelectedProxy] = useState('a_to_b');
+  const [selectedProxy, setSelectedProxy] = useState('');
   const [toxicType, setToxicType] = useState('latency');
   const [fieldValues, setFieldValues] = useState<Record<string, number>>({ latency: 1000, jitter: 0 });
 
@@ -103,6 +100,20 @@ export default function FailureInjection() {
     enabled: !!sid,
     refetchInterval: 5000,
   });
+
+  // Derive proxy options dynamically from Toxiproxy
+  const proxyOptions = toxicsData
+    ? Object.keys(toxicsData).map((name) => {
+        const parts = name.split('_to_');
+        const label = parts.length === 2 ? `${parts[0]} → ${parts[1]}` : name;
+        return { value: name, label };
+      })
+    : [];
+
+  // Auto-select first proxy when data loads or sandbox changes
+  if (proxyOptions.length > 0 && (!selectedProxy || !proxyOptions.find(p => p.value === selectedProxy))) {
+    setSelectedProxy(proxyOptions[0].value);
+  }
 
   // Add toxic
   const addMutation = useMutation({
@@ -161,9 +172,13 @@ export default function FailureInjection() {
               className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-white text-sm
                          focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
             >
-              {proxyOptions.map((p) => (
-                <option key={p.value} value={p.value}>{p.label}</option>
-              ))}
+              {proxyOptions.length > 0 ? (
+                proxyOptions.map((p) => (
+                  <option key={p.value} value={p.value}>{p.label}</option>
+                ))
+              ) : (
+                <option value="">Loading proxies...</option>
+              )}
             </select>
           </div>
 

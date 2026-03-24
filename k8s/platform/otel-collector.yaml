@@ -13,6 +13,17 @@ data:
           http:
             endpoint: 0.0.0.0:4318
 
+    connectors:
+      spanmetrics:
+        histogram:
+          explicit:
+            buckets: [5ms, 10ms, 25ms, 50ms, 100ms, 250ms, 500ms, 1s, 2.5s, 5s, 10s]
+        dimensions:
+          - name: http.status_code
+          - name: http.method
+        resource_metrics_key_attributes:
+          - service.name
+
     processors:
       batch:
         timeout: 5s
@@ -27,15 +38,17 @@ data:
       prometheus:
         endpoint: "0.0.0.0:8889"
         namespace: prometheon
+        resource_to_telemetry_conversion:
+          enabled: true
 
     service:
       pipelines:
         traces:
           receivers: [otlp]
           processors: [batch]
-          exporters: [otlp/jaeger]
+          exporters: [otlp/jaeger, spanmetrics]
         metrics:
-          receivers: [otlp]
+          receivers: [spanmetrics]
           processors: [batch]
           exporters: [prometheus]
 ---
@@ -58,15 +71,15 @@ spec:
     spec:
       containers:
         - name: otel-collector
-          image: otel/opentelemetry-collector:0.103.1
-          args: ["--config=/etc/otelcol/config.yaml"]
+          image: otel/opentelemetry-collector-contrib:0.103.1
+          args: ["--config=/etc/otelcol-contrib/config.yaml"]
           ports:
-            - containerPort: 4317  # OTLP gRPC
-            - containerPort: 4318  # OTLP HTTP
-            - containerPort: 8889  # Prometheus exporter
+            - containerPort: 4317
+            - containerPort: 4318
+            - containerPort: 8889
           volumeMounts:
             - name: config
-              mountPath: /etc/otelcol/config.yaml
+              mountPath: /etc/otelcol-contrib/config.yaml
               subPath: config.yaml
           resources:
             requests:
