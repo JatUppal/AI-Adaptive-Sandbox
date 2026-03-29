@@ -9,11 +9,11 @@ import { useSandbox } from '../contexts/SandboxContext';
 // ---------------------------------------------------------------------------
 function StatusBadge({ status }: { status: string }) {
   const colors: Record<string, string> = {
-    ready: 'bg-emerald-500/15 text-emerald-400',
+    ready: 'bg-sky-500/15 text-sky-400',
     creating: 'bg-amber-500/15 text-amber-400',
   };
   const dots: Record<string, string> = {
-    ready: 'bg-emerald-400',
+    ready: 'bg-sky-400',
     creating: 'bg-amber-400 animate-pulse',
   };
   return (
@@ -82,7 +82,7 @@ function ServiceBuilder({
                   name="entry_point"
                   checked={svc.entry_point}
                   onChange={() => updateService(i, 'entry_point', true)}
-                  className="w-3.5 h-3.5 text-emerald-500 bg-zinc-800 border-zinc-600"
+                  className="w-3.5 h-3.5 text-sky-500 bg-zinc-800 border-zinc-600"
                 />
                 <span className="text-xs text-zinc-400">Entry point</span>
               </label>
@@ -100,7 +100,7 @@ function ServiceBuilder({
                 type="text" value={svc.name}
                 onChange={(e) => updateService(i, 'name', e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
                 placeholder="api-gateway" maxLength={60}
-                className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-1.5 text-white text-sm placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+                className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-1.5 text-white text-sm placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-sky-500/40"
               />
             </div>
             <div>
@@ -109,7 +109,7 @@ function ServiceBuilder({
                 type="text" value={svc.image}
                 onChange={(e) => updateService(i, 'image', e.target.value)}
                 placeholder="nginx:1.25"
-                className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-1.5 text-white text-sm placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+                className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-1.5 text-white text-sm placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-sky-500/40"
               />
             </div>
             <div>
@@ -119,7 +119,7 @@ function ServiceBuilder({
                 onChange={(e) => updateService(i, 'port', e.target.value === '' ? 0 : Number(e.target.value))}
                 onFocus={(e) => e.target.select()}
                 min={1} max={65535}
-                className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+                className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/40"
               />
             </div>
           </div>
@@ -171,12 +171,12 @@ function ConnectionBuilder({
       {connections.map((conn, i) => (
         <div key={i} className="flex items-center gap-3">
           <select value={conn.from_service} onChange={(e) => updateConnection(i, 'from_service', e.target.value)}
-            className="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/40">
+            className="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/40">
             {serviceNames.map(n => <option key={n} value={n}>{n}</option>)}
           </select>
           <span className="text-zinc-500 text-sm">→</span>
           <select value={conn.to_service} onChange={(e) => updateConnection(i, 'to_service', e.target.value)}
-            className="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/40">
+            className="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/40">
             {serviceNames.map(n => <option key={n} value={n}>{n}</option>)}
           </select>
           <button onClick={() => removeConnection(i)} className="text-zinc-600 hover:text-red-400 transition-colors p-1">
@@ -276,11 +276,11 @@ export default function Sandboxes() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">Sandboxes</h1>
+          <h1 className="text-lg font-bold text-white tracking-tight" style={{ fontFamily: "'Orbitron', sans-serif" }}>Sandboxes</h1>
           <p className="text-zinc-400 text-sm mt-1">Isolated K8s namespaces with your services and Toxiproxy</p>
         </div>
         <button onClick={() => setShowCreate(true)}
-          className="bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors flex items-center gap-2">
+          className="bg-sky-600 hover:bg-sky-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors flex items-center gap-2">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           Create sandbox
         </button>
@@ -294,12 +294,12 @@ export default function Sandboxes() {
             {[1, 2, 3].map((s) => (
               <div key={s} className="flex items-center gap-2">
                 <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
-                  step >= s ? 'bg-emerald-600 text-white' : 'bg-zinc-800 text-zinc-500'
+                  step >= s ? 'bg-sky-600 text-white' : 'bg-zinc-800 text-zinc-500'
                 }`}>{s}</div>
                 <span className={`text-xs ${step >= s ? 'text-zinc-200' : 'text-zinc-600'}`}>
                   {s === 1 ? 'Basics' : s === 2 ? 'Services' : 'Connections'}
                 </span>
-                {s < 3 && <div className={`w-8 h-px ${step > s ? 'bg-emerald-600' : 'bg-zinc-700'}`} />}
+                {s < 3 && <div className={`w-8 h-px ${step > s ? 'bg-sky-600' : 'bg-zinc-700'}`} />}
               </div>
             ))}
           </div>
@@ -312,12 +312,12 @@ export default function Sandboxes() {
                   <label className="block text-sm text-zinc-400 mb-1.5">Sandbox name</label>
                   <input type="text" value={newName} onChange={(e) => setNewName(e.target.value)}
                     placeholder="e.g. staging-test" autoFocus
-                    className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-white text-sm placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/40" />
+                    className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-white text-sm placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-sky-500/40" />
                 </div>
                 <div>
                   <label className="block text-sm text-zinc-400 mb-1.5">Resource tier</label>
                   <select value={newTier} onChange={(e) => setNewTier(e.target.value)}
-                    className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/40">
+                    className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/40">
                     <option value="small">Small — 500m CPU, 512Mi per pod</option>
                     <option value="medium">Medium — 1 CPU, 1Gi per pod</option>
                     <option value="large">Large — 2 CPU, 2Gi per pod</option>
@@ -327,7 +327,7 @@ export default function Sandboxes() {
               <div className="flex justify-between pt-2">
                 <button onClick={resetForm} className="text-zinc-400 hover:text-zinc-200 text-sm px-3 py-2 transition-colors">Cancel</button>
                 <button onClick={() => setStep(2)} disabled={!step1Valid}
-                  className="bg-emerald-600 hover:bg-emerald-500 disabled:bg-zinc-700 disabled:text-zinc-500 text-white text-sm font-medium px-5 py-2 rounded-lg transition-colors">
+                  className="bg-sky-600 hover:bg-sky-500 disabled:bg-zinc-700 disabled:text-zinc-500 text-white text-sm font-medium px-5 py-2 rounded-lg transition-colors">
                   Next
                 </button>
               </div>
@@ -341,7 +341,7 @@ export default function Sandboxes() {
               <div className="bg-zinc-800/50 border border-zinc-700/50 rounded-lg p-4">
                 <label className="flex items-center gap-3 cursor-pointer">
                   <input type="checkbox" checked={useDemo} onChange={(e) => setUseDemo(e.target.checked)}
-                    className="w-4 h-4 rounded border-zinc-600 bg-zinc-700 text-emerald-500 focus:ring-emerald-500/40 focus:ring-offset-0" />
+                    className="w-4 h-4 rounded border-zinc-600 bg-zinc-700 text-sky-500 focus:ring-sky-500/40 focus:ring-offset-0" />
                   <div>
                     <span className="text-sm font-medium text-zinc-200">Use demo services</span>
                     <p className="text-xs text-zinc-500 mt-0.5">Quick start with built-in service-a → service-b → service-c chain</p>
@@ -360,7 +360,7 @@ export default function Sandboxes() {
               <div className="flex justify-between pt-2">
                 <button onClick={() => setStep(1)} className="text-zinc-400 hover:text-zinc-200 text-sm px-3 py-2 transition-colors">Back</button>
                 <button onClick={() => useDemo ? setStep(3) : setStep(3)} disabled={!step2Valid || hasDuplicateNames}
-                  className="bg-emerald-600 hover:bg-emerald-500 disabled:bg-zinc-700 disabled:text-zinc-500 text-white text-sm font-medium px-5 py-2 rounded-lg transition-colors">
+                  className="bg-sky-600 hover:bg-sky-500 disabled:bg-zinc-700 disabled:text-zinc-500 text-white text-sm font-medium px-5 py-2 rounded-lg transition-colors">
                   {useDemo ? 'Review' : 'Next'}
                 </button>
               </div>
@@ -383,11 +383,11 @@ export default function Sandboxes() {
                 <div className="text-xs text-zinc-400 space-y-1">
                   <p>Name: <span className="text-white">{newName}</span> — Tier: <span className="text-white">{newTier}</span></p>
                   {useDemo ? (
-                    <p>Services: <span className="text-emerald-400">Demo (service-a → service-b → service-c)</span></p>
+                    <p>Services: <span className="text-sky-400">Demo (service-a → service-b → service-c)</span></p>
                   ) : (
                     <>
                       <p>Services ({services.length}): {serviceNames.map((n, i) => (
-                        <span key={n}><code className="text-emerald-400">{n}</code>{i < serviceNames.length - 1 ? ', ' : ''}</span>
+                        <span key={n}><code className="text-sky-400">{n}</code>{i < serviceNames.length - 1 ? ', ' : ''}</span>
                       ))}</p>
                       {connections.length > 0 && (
                         <p>Connections: {connections.map((c, i) => (
@@ -402,7 +402,7 @@ export default function Sandboxes() {
               <div className="flex justify-between pt-2">
                 <button onClick={() => setStep(2)} className="text-zinc-400 hover:text-zinc-200 text-sm px-3 py-2 transition-colors">Back</button>
                 <button onClick={() => createMutation.mutate()} disabled={createMutation.isPending}
-                  className="bg-emerald-600 hover:bg-emerald-500 disabled:bg-zinc-700 text-white text-sm font-medium px-6 py-2.5 rounded-lg transition-colors flex items-center gap-2">
+                  className="bg-sky-600 hover:bg-sky-500 disabled:bg-zinc-700 text-white text-sm font-medium px-6 py-2.5 rounded-lg transition-colors flex items-center gap-2">
                   {createMutation.isPending ? (
                     <><div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />Creating sandbox...</>
                   ) : 'Create sandbox'}
@@ -415,7 +415,7 @@ export default function Sandboxes() {
       )}
 
       {/* Loading / Error / Empty */}
-      {isLoading && <div className="flex items-center justify-center h-48"><div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" /></div>}
+      {isLoading && <div className="flex items-center justify-center h-48"><div className="w-6 h-6 border-2 border-sky-500 border-t-transparent rounded-full animate-spin" /></div>}
       {error && <div className="bg-red-500/10 border border-red-500/30 text-red-400 rounded-lg p-4 text-sm">Failed to load sandboxes: {(error as Error).message}</div>}
 
       {sandboxes && sandboxes.length === 0 && !isLoading && !showCreate && (
@@ -426,7 +426,7 @@ export default function Sandboxes() {
           <p className="text-zinc-300 font-medium mb-1">No sandboxes yet</p>
           <p className="text-zinc-500 text-sm mb-4">Create your first sandbox to deploy an isolated service mesh.</p>
           <button onClick={() => setShowCreate(true)}
-            className="bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium px-5 py-2.5 rounded-lg transition-colors">
+            className="bg-sky-600 hover:bg-sky-500 text-white text-sm font-medium px-5 py-2.5 rounded-lg transition-colors">
             Create your first sandbox
           </button>
         </div>
@@ -439,14 +439,14 @@ export default function Sandboxes() {
             {sandboxes.map((sb: SandboxSummary) => (
               <div key={sb.sandbox_id} onClick={() => setSelectedId(sb.sandbox_id)}
                 className={`bg-zinc-900 border rounded-xl p-4 cursor-pointer transition-all ${
-                  selectedId === sb.sandbox_id ? 'border-emerald-500/40 bg-emerald-500/5' : 'border-zinc-800 hover:border-zinc-700'
+                  selectedId === sb.sandbox_id ? 'border-sky-500/40 bg-sky-500/5' : 'border-zinc-800 hover:border-zinc-700'
                 }`}>
                 <div className="flex items-start justify-between">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-3 mb-1">
                       <h3 className="text-white font-semibold truncate">{sb.name}</h3>
                       <StatusBadge status={sb.status} />
-                      {activeSandbox?.sandbox_id === sb.sandbox_id && <span className="text-xs text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">active</span>}
+                      {activeSandbox?.sandbox_id === sb.sandbox_id && <span className="text-xs text-sky-400 bg-sky-500/10 px-2 py-0.5 rounded-full">active</span>}
                     </div>
                     <div className="flex items-center gap-4 text-xs text-zinc-500">
                       <span className="font-mono">{sb.sandbox_id}</span>
@@ -461,7 +461,7 @@ export default function Sandboxes() {
                     </div>
                     {activeSandbox?.sandbox_id !== sb.sandbox_id && sb.status === 'ready' && (
                       <button onClick={(e) => { e.stopPropagation(); setActiveSandbox(sb); }}
-                        className="text-xs text-emerald-400 hover:text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 px-2.5 py-1 rounded-md transition-colors">Activate</button>
+                        className="text-xs text-sky-400 hover:text-sky-300 bg-sky-500/10 hover:bg-sky-500/20 px-2.5 py-1 rounded-md transition-colors">Activate</button>
                     )}
                     {deleteConfirm === sb.sandbox_id ? (
                       <div className="flex items-center gap-1">
@@ -488,7 +488,7 @@ export default function Sandboxes() {
             {!selectedId ? (
               <div className="flex items-center justify-center h-48 text-zinc-500 text-sm">Select a sandbox to view details</div>
             ) : detailLoading ? (
-              <div className="flex items-center justify-center h-48"><div className="w-5 h-5 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" /></div>
+              <div className="flex items-center justify-center h-48"><div className="w-5 h-5 border-2 border-sky-500 border-t-transparent rounded-full animate-spin" /></div>
             ) : detail ? (
               <div className="space-y-5">
                 <div>
@@ -497,7 +497,7 @@ export default function Sandboxes() {
                 </div>
                 <div>
                   <h4 className="text-xs font-medium text-zinc-500 uppercase tracking-wider mb-1.5">Namespace</h4>
-                  <code className="text-sm text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded">{detail.namespace}</code>
+                  <code className="text-sm text-sky-400 bg-sky-500/10 px-2 py-1 rounded">{detail.namespace}</code>
                 </div>
                 {(detail as any).entry_point && (
                   <div>
@@ -526,8 +526,8 @@ export default function Sandboxes() {
                         <div key={pod.name} className="flex items-center justify-between bg-zinc-800/50 rounded-lg px-3 py-2">
                           <span className="text-xs text-zinc-300 font-mono truncate flex-1">{pod.name}</span>
                           <div className="flex items-center gap-2 ml-2">
-                            <span className={`w-1.5 h-1.5 rounded-full ${pod.ready ? 'bg-emerald-400' : 'bg-amber-400 animate-pulse'}`} />
-                            <span className={`text-xs ${pod.ready ? 'text-emerald-400' : 'text-amber-400'}`}>{pod.status}</span>
+                            <span className={`w-1.5 h-1.5 rounded-full ${pod.ready ? 'bg-sky-400' : 'bg-amber-400 animate-pulse'}`} />
+                            <span className={`text-xs ${pod.ready ? 'text-sky-400' : 'text-amber-400'}`}>{pod.status}</span>
                           </div>
                         </div>
                       ))}

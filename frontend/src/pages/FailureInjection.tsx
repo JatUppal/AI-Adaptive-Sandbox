@@ -152,9 +152,9 @@ export default function FailureInjection() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-white">Failure Injection</h1>
+        <h1 className="text-lg font-bold text-white tracking-tight" style={{ fontFamily: "'Orbitron', sans-serif" }}>Failure Injection</h1>
         <p className="text-zinc-400 text-sm mt-1">
-          Inject chaos into <span className="text-emerald-400">{activeSandbox.name}</span>'s service mesh via Toxiproxy
+          Inject chaos into <span className="text-sky-400">{activeSandbox.name}</span>'s service mesh via Toxiproxy
         </p>
       </div>
 
@@ -170,7 +170,7 @@ export default function FailureInjection() {
               value={selectedProxy}
               onChange={(e) => setSelectedProxy(e.target.value)}
               className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-white text-sm
-                         focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+                         focus:outline-none focus:ring-2 focus:ring-sky-500/40"
             >
               {proxyOptions.length > 0 ? (
                 proxyOptions.map((p) => (
@@ -189,7 +189,7 @@ export default function FailureInjection() {
               value={toxicType}
               onChange={(e) => handleTypeChange(e.target.value)}
               className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-white text-sm
-                         focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+                         focus:outline-none focus:ring-2 focus:ring-sky-500/40"
             >
               {toxicTypes.map((t) => (
                 <option key={t.value} value={t.value}>{t.label} — {t.description}</option>
@@ -209,7 +209,7 @@ export default function FailureInjection() {
                 onChange={(e) => setFieldValues({ ...fieldValues, [field.name]: e.target.value === '' ? 0 : Number(e.target.value) })}
                 onFocus={(e) => e.target.select()}
                 className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-white text-sm
-                           focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+                           focus:outline-none focus:ring-2 focus:ring-sky-500/40"
               />
             </div>
           ))}
@@ -256,7 +256,7 @@ export default function FailureInjection() {
                    className="flex items-center justify-between bg-zinc-800/50 rounded-lg px-4 py-3">
                 <div>
                   <div className="flex items-center gap-2">
-                    <code className="text-emerald-400 text-xs bg-emerald-500/10 px-1.5 py-0.5 rounded">{toxic.proxy}</code>
+                    <code className="text-sky-400 text-xs bg-sky-500/10 px-1.5 py-0.5 rounded">{toxic.proxy}</code>
                     <span className="text-white text-sm font-medium">{toxic.type}</span>
                   </div>
                   <p className="text-zinc-400 text-xs mt-1">{formatAttributes(toxic.type, toxic.attributes)}</p>

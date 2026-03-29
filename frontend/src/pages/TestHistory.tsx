@@ -8,11 +8,11 @@ function StatusBadge({ status }: { status: string }) {
     <span
       className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
         isSuccess
-          ? 'bg-emerald-500/15 text-emerald-400'
+          ? 'bg-sky-500/15 text-sky-400'
           : 'bg-red-500/15 text-red-400'
       }`}
     >
-      <span className={`w-1.5 h-1.5 rounded-full ${isSuccess ? 'bg-emerald-400' : 'bg-red-400'}`} />
+      <span className={`w-1.5 h-1.5 rounded-full ${isSuccess ? 'bg-sky-400' : 'bg-red-400'}`} />
       {status}
     </span>
   );
@@ -53,7 +53,7 @@ export default function TestHistory() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+        <div className="w-6 h-6 border-2 border-sky-500 border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -69,7 +69,7 @@ export default function TestHistory() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-white">Test history</h1>
+        <h1 className="text-lg font-bold text-white tracking-tight" style={{ fontFamily: "'Orbitron', sans-serif" }}>Test history</h1>
         <p className="text-zinc-400 text-sm mt-1">
           All RCA analyses are persisted automatically. Click a row to view full details.
         </p>
@@ -104,7 +104,7 @@ export default function TestHistory() {
                       onClick={() => setSelectedId(r.id)}
                       className={`border-b border-zinc-800/50 cursor-pointer transition-colors ${
                         selectedId === r.id
-                          ? 'bg-emerald-500/5'
+                          ? 'bg-sky-500/5'
                           : 'hover:bg-zinc-800/50'
                       }`}
                     >
@@ -112,7 +112,7 @@ export default function TestHistory() {
                         {r.created_at ? formatDate(r.created_at) : '—'}
                       </td>
                       <td className="px-4 py-3">
-                        <code className="text-emerald-400 text-xs bg-emerald-500/10 px-1.5 py-0.5 rounded">
+                        <code className="text-sky-400 text-xs bg-sky-500/10 px-1.5 py-0.5 rounded">
                           {r.service}
                         </code>
                       </td>
@@ -145,7 +145,7 @@ export default function TestHistory() {
               </div>
             ) : detailLoading ? (
               <div className="flex items-center justify-center h-48">
-                <div className="w-5 h-5 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+                <div className="w-5 h-5 border-2 border-sky-500 border-t-transparent rounded-full animate-spin" />
               </div>
             ) : detail ? (
               <div className="space-y-4">
@@ -186,7 +186,7 @@ export default function TestHistory() {
                       {detail.root_causes.map((rc: any, i: number) => (
                         <div key={i} className="bg-zinc-800/50 rounded-lg p-3">
                           <div className="flex items-center justify-between mb-1">
-                            <code className="text-emerald-400 text-xs">{rc.service}</code>
+                            <code className="text-sky-400 text-xs">{rc.service}</code>
                             <span className="text-amber-400 text-xs font-mono">
                               {(rc.confidence * 100).toFixed(0)}%
                             </span>
@@ -205,7 +205,7 @@ export default function TestHistory() {
                     <ul className="space-y-1">
                       {detail.recommendations.map((rec: string, i: number) => (
                         <li key={i} className="text-zinc-400 text-xs flex gap-2">
-                          <span className="text-emerald-500 mt-0.5">→</span>
+                          <span className="text-sky-500 mt-0.5">→</span>
                           {rec}
                         </li>
                       ))}

@@ -22,7 +22,7 @@ export default function NoSandbox({ title, description }: Props) {
         <p className="text-zinc-400 text-sm mb-6">{description}</p>
         <button
           onClick={() => navigate('/sandboxes')}
-          className="bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium px-6 py-2.5
+          className="bg-sky-600 hover:bg-sky-500 text-white text-sm font-medium px-6 py-2.5
                      rounded-lg transition-colors inline-flex items-center gap-2"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"

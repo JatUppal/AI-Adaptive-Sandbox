@@ -14,9 +14,9 @@ export default function Replay() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-white">Replay</h1>
+        <h1 className="text-lg font-bold text-white tracking-tight" style={{ fontFamily: "'Orbitron', sans-serif" }}>Replay</h1>
         <p className="text-zinc-400 text-sm mt-1">
-          Send traffic to <span className="text-emerald-400">{activeSandbox.name}</span>'s entry point
+          Send traffic to <span className="text-sky-400">{activeSandbox.name}</span>'s entry point
         </p>
       </div>
 
@@ -36,7 +36,7 @@ export default function Replay() {
               max={500}
               disabled={isRunning}
               className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-white text-sm
-                         disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+                         disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-sky-500/40"
             />
           </div>
           <div>
@@ -50,7 +50,7 @@ export default function Replay() {
               max={5000}
               disabled={isRunning}
               className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-white text-sm
-                         disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+                         disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-sky-500/40"
             />
           </div>
         </div>
@@ -61,7 +61,7 @@ export default function Replay() {
             startReplay(sid!);
           }}
           disabled={isRunning}
-          className="bg-emerald-600 hover:bg-emerald-500 disabled:bg-zinc-700 text-white text-sm font-medium px-5 py-2.5
+          className="bg-sky-600 hover:bg-sky-500 disabled:bg-zinc-700 text-white text-sm font-medium px-5 py-2.5
                      rounded-lg transition-colors flex items-center gap-2"
         >
           {isRunning ? (
@@ -95,8 +95,8 @@ export default function Replay() {
               <div className="text-2xl font-bold text-white font-mono">{result.total}</div>
               <div className="text-xs text-zinc-500 mt-1">Total</div>
             </div>
-            <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-4 text-center">
-              <div className="text-2xl font-bold text-emerald-400 font-mono">{result.success}</div>
+            <div className="bg-sky-500/10 border border-sky-500/20 rounded-lg p-4 text-center">
+              <div className="text-2xl font-bold text-sky-400 font-mono">{result.success}</div>
               <div className="text-xs text-zinc-500 mt-1">Successful</div>
             </div>
             <div className={`rounded-lg p-4 text-center ${
@@ -117,7 +117,7 @@ export default function Replay() {
             </div>
             <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
               <div
-                className="h-full bg-emerald-500 rounded-full transition-all"
+                className="h-full bg-sky-500 rounded-full transition-all"
                 style={{ width: `${result.total > 0 ? (result.success / result.total) * 100 : 0}%` }}
               />
             </div>
@@ -139,7 +139,7 @@ export default function Replay() {
       {/* Running indicator when on page */}
       {isRunning && !result && (
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-8 text-center">
-          <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+          <div className="w-8 h-8 border-2 border-sky-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
           <p className="text-zinc-400 text-sm">Sending requests to your sandbox...</p>
           <p className="text-zinc-500 text-xs mt-1">You can navigate to other pages — results will be here when you come back.</p>
         </div>

@@ -51,14 +51,8 @@ export default function Register() {
         {/* Logo / Brand */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2 mb-4">
-            <div className="w-10 h-10 rounded-lg bg-emerald-500/20 flex items-center justify-center">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                   strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                   className="text-emerald-400">
-                <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
-              </svg>
-            </div>
-            <span className="text-2xl font-bold text-white tracking-tight">Prometheon</span>
+            <img src="/favicon.svg" alt="Prometheon" className="w-10 h-10" />
+            <span className="text-lg font-bold text-white tracking-tight" style={{ fontFamily: "'Orbitron', sans-serif" }}>Prometheon</span>
           </div>
           <p className="text-zinc-400 text-sm">Create your account to get started</p>
         </div>
@@ -85,8 +79,8 @@ export default function Register() {
                 autoFocus
                 autoComplete="email"
                 className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2.5 text-white
-                           placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/40
-                           focus:border-emerald-500/60 transition-colors"
+                           placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-sky-500/40
+                           focus:border-sky-500/60 transition-colors"
                 placeholder="you@example.com"
               />
             </div>
@@ -104,8 +98,8 @@ export default function Register() {
                 minLength={3}
                 autoComplete="username"
                 className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2.5 text-white
-                           placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/40
-                           focus:border-emerald-500/60 transition-colors"
+                           placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-sky-500/40
+                           focus:border-sky-500/60 transition-colors"
                 placeholder="Choose a username"
               />
             </div>
@@ -124,8 +118,8 @@ export default function Register() {
                   minLength={6}
                   autoComplete="new-password"
                   className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2.5 text-white
-                             placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/40
-                             focus:border-emerald-500/60 transition-colors"
+                             placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-sky-500/40
+                             focus:border-sky-500/60 transition-colors"
                   placeholder="Min 6 chars"
                 />
               </div>
@@ -141,8 +135,8 @@ export default function Register() {
                   required
                   autoComplete="new-password"
                   className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2.5 text-white
-                             placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/40
-                             focus:border-emerald-500/60 transition-colors"
+                             placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-sky-500/40
+                             focus:border-sky-500/60 transition-colors"
                   placeholder="Confirm"
                 />
               </div>
@@ -155,8 +149,8 @@ export default function Register() {
                   type="checkbox"
                   checked={createTenant}
                   onChange={(e) => setCreateTenant(e.target.checked)}
-                  className="w-4 h-4 rounded border-zinc-600 bg-zinc-700 text-emerald-500
-                             focus:ring-emerald-500/40 focus:ring-offset-0"
+                  className="w-4 h-4 rounded border-zinc-600 bg-zinc-700 text-sky-500
+                             focus:ring-sky-500/40 focus:ring-offset-0"
                 />
                 <div>
                   <span className="text-sm font-medium text-zinc-200">Create a new team</span>
@@ -173,8 +167,8 @@ export default function Register() {
                   onChange={(e) => setTenantName(e.target.value)}
                   required={createTenant}
                   className="mt-3 w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2.5 text-white
-                             placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/40
-                             focus:border-emerald-500/60 transition-colors"
+                             placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-sky-500/40
+                             focus:border-sky-500/60 transition-colors"
                   placeholder="Team name (e.g. Acme Engineering)"
                 />
               )}
@@ -183,7 +177,7 @@ export default function Register() {
             <button
               type="submit"
               disabled={isSubmitting || !email || !username || !password || !confirmPassword}
-              className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:bg-zinc-700 disabled:text-zinc-500
+              className="w-full bg-sky-600 hover:bg-sky-500 disabled:bg-zinc-700 disabled:text-zinc-500
                          text-white font-medium py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2"
             >
               {isSubmitting ? (
@@ -200,7 +194,7 @@ export default function Register() {
           <div className="mt-6 pt-6 border-t border-zinc-800 text-center">
             <p className="text-zinc-400 text-sm">
               Already have an account?{' '}
-              <Link to="/login" className="text-emerald-400 hover:text-emerald-300 font-medium transition-colors">
+              <Link to="/login" className="text-sky-400 hover:text-sky-300 font-medium transition-colors">
                 Sign in
               </Link>
             </p>

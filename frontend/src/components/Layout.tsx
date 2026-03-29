@@ -73,14 +73,12 @@ export default function Layout({ children }: Props) {
   return (
     <div className="flex min-h-screen bg-zinc-950">
       {/* Sidebar */}
-      <aside className="w-60 bg-zinc-900 border-r border-zinc-800 flex flex-col">
+      <aside className="w-60 bg-zinc-900 border-r border-zinc-800 flex flex-col h-screen sticky top-0">
         {/* Brand */}
         <div className="px-5 py-5 border-b border-zinc-800">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center text-emerald-400">
-              {icons.injection}
-            </div>
-            <span className="text-lg font-bold text-white tracking-tight">Prometheon</span>
+            <img src="/favicon.svg" alt="Prometheon" className="w-8 h-8" />
+            <span className="text-lg font-bold text-white tracking-tight" style={{ fontFamily: "'Orbitron', sans-serif" }}>Prometheon</span>
           </div>
         </div>
 
@@ -101,7 +99,7 @@ export default function Layout({ children }: Props) {
                 className={({ isActive }) =>
                   `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                     isActive
-                      ? 'bg-emerald-500/10 text-emerald-400'
+                      ? 'bg-sky-500/10 text-sky-400'
                       : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60'
                   }`
                 }

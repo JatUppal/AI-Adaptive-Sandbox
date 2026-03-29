@@ -93,7 +93,7 @@ data:
           "datasource": { "type": "prometheus", "uid": "" },
           "targets": [
             {
-              "expr": "sum by (service_name) (rate(prometheon_calls_total{service_name=~\".*$sandbox.*\",status_code=\"STATUS_CODE_ERROR\"}[5m])) / sum by (service_name) (rate(prometheon_calls_total{service_name=~\".*$sandbox.*\"}[5m])) * 100",
+              "expr": "(sum by (service_name) (rate(prometheon_calls_total{service_name=~\".*$sandbox.*\",status_code=\"STATUS_CODE_ERROR\"}[5m])) or (sum by (service_name) (rate(prometheon_calls_total{service_name=~\".*$sandbox.*\"}[5m])) * 0)) / sum by (service_name) (rate(prometheon_calls_total{service_name=~\".*$sandbox.*\"}[5m])) * 100",
               "legendFormat": "{{service_name}}",
               "refId": "A"
             }

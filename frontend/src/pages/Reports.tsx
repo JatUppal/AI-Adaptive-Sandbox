@@ -55,7 +55,7 @@ export default function Reports() {
   return (
     <div className="space-y-8">
       <div>
-        <h2 className="text-3xl font-bold tracking-tight">Reports</h2>
+        <h2 className="text-lg font-bold text-white tracking-tight" style={{ fontFamily: "'Orbitron', sans-serif" }}>Reports</h2>
         <p className="text-muted-foreground mt-1">System analytics and documentation</p>
       </div>
 

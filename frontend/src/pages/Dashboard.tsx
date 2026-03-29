@@ -55,9 +55,9 @@ export default function Dashboard() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-white">Dashboard</h1>
+        <h1 className="text-lg font-bold text-white tracking-tight" style={{ fontFamily: "'Orbitron', sans-serif" }}>Dashboard</h1>
         <p className="text-zinc-400 text-sm mt-1">
-          Real-time monitoring for <span className="text-emerald-400">{activeSandbox.name}</span>
+          Real-time monitoring for <span className="text-sky-400">{activeSandbox.name}</span>
         </p>
       </div>
 
@@ -87,7 +87,7 @@ export default function Dashboard() {
             {servicesHealth.map((svc: any) => (
               <div key={svc.name} className="flex items-center justify-between py-2">
                 <div className="flex items-center gap-3">
-                  <span className={`w-2.5 h-2.5 rounded-full ${svc.status === 'Healthy' ? 'bg-emerald-400' : 'bg-red-400'}`} />
+                 <span className={`w-2.5 h-2.5 rounded-full ${svc.status === 'Healthy' ? 'bg-green-400 animate-pulse' : 'bg-red-400 animate-pulse'}`} />
                   <span className="text-zinc-200 text-sm">{svc.name}</span>
                 </div>
                 <span className={`text-sm font-medium ${svc.status === 'Healthy' ? 'text-emerald-400' : 'text-red-400'}`}>
@@ -105,7 +105,7 @@ export default function Dashboard() {
           href={`${GRAFANA_URL}/d/prometheon-chaos/prometheon-chaos-engineering?orgId=1&from=now-30m&to=now`}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-zinc-500 hover:text-emerald-400 text-xs transition-colors inline-flex items-center gap-1"
+          className="text-zinc-500 hover:text-sky-400 text-xs transition-colors inline-flex items-center gap-1"
         >
           Open full Grafana dashboard
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
