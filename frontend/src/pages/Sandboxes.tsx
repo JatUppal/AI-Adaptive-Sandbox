@@ -11,10 +11,12 @@ function StatusBadge({ status }: { status: string }) {
   const colors: Record<string, string> = {
     ready: 'bg-sky-500/15 text-sky-400',
     creating: 'bg-amber-500/15 text-amber-400',
+    deleting: 'bg-red-500/15 text-red-400',
   };
   const dots: Record<string, string> = {
     ready: 'bg-sky-400',
     creating: 'bg-amber-400 animate-pulse',
+    deleting: 'bg-red-400 animate-pulse',
   };
   return (
     <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${colors[status] || colors.creating}`}>
@@ -204,6 +206,8 @@ export default function Sandboxes() {
   const [showCreate, setShowCreate] = useState(false);
   const [step, setStep] = useState(1);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
+  
 
   // Create form state
   const [newName, setNewName] = useState('');
@@ -245,6 +249,14 @@ export default function Sandboxes() {
     refetchInterval: 5000,
   });
 
+  const currentIds = new Set((sandboxes || []).map((sb: any) => sb.sandbox_id));
+  if (deletingIds.size > 0) {
+    const stillDeleting = new Set([...deletingIds].filter(id => currentIds.has(id)));
+    if (stillDeleting.size !== deletingIds.size) {
+      setTimeout(() => setDeletingIds(stillDeleting), 0);
+    }
+  }
+
   // Mutations
   const createMutation = useMutation({
     mutationFn: () =>
@@ -263,6 +275,9 @@ export default function Sandboxes() {
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.deleteSandbox(id),
+    onMutate: (id) => {
+      setDeletingIds(prev => new Set(prev).add(id));
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sandboxes'] });
       refreshSandboxes();
@@ -439,12 +454,21 @@ export default function Sandboxes() {
             {sandboxes.map((sb: SandboxSummary) => (
               <div key={sb.sandbox_id} onClick={() => setSelectedId(sb.sandbox_id)}
                 className={`bg-zinc-900 border rounded-xl p-4 cursor-pointer transition-all ${
-                  selectedId === sb.sandbox_id ? 'border-sky-500/40 bg-sky-500/5' : 'border-zinc-800 hover:border-zinc-700'
+                  deletingIds.has(sb.sandbox_id)
+                    ? 'border-red-500/40 bg-red-500/5 opacity-60 pointer-events-none'
+                    : selectedId === sb.sandbox_id ? 'border-sky-500/40 bg-sky-500/5' : 'border-zinc-800 hover:border-zinc-700'
                 }`}>
                 <div className="flex items-start justify-between">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-3 mb-1">
-                      <h3 className="text-white font-semibold truncate">{sb.name}</h3>
+                      <h3 className="text-white font-semibold truncate">
+                        {deletingIds.has(sb.sandbox_id) ? (
+                          <span className="flex items-center gap-2">
+                            <span className="w-3 h-3 border-2 border-red-400/30 border-t-red-400 rounded-full animate-spin" />
+                            Deleting {sb.name}...
+                          </span>
+                        ) : sb.name}
+                      </h3>
                       <StatusBadge status={sb.status} />
                       {activeSandbox?.sandbox_id === sb.sandbox_id && <span className="text-xs text-sky-400 bg-sky-500/10 px-2 py-0.5 rounded-full">active</span>}
                     </div>
@@ -467,7 +491,7 @@ export default function Sandboxes() {
                       <div className="flex items-center gap-1">
                         <button onClick={(e) => { e.stopPropagation(); deleteMutation.mutate(sb.sandbox_id); }}
                           disabled={deleteMutation.isPending}
-                          className="text-xs bg-red-600 hover:bg-red-500 text-white px-2.5 py-1 rounded-md transition-colors">{deleteMutation.isPending ? '...' : 'Confirm'}</button>
+                          className="text-xs bg-red-600 hover:bg-red-500 text-white px-2.5 py-1 rounded-md transition-colors">{deleteMutation.isPending ? '...' : 'Delete'}</button>
                         <button onClick={(e) => { e.stopPropagation(); setDeleteConfirm(null); }}
                           className="text-xs text-zinc-400 hover:text-zinc-200 px-1.5 py-1 transition-colors">Cancel</button>
                       </div>

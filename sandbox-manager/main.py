@@ -363,8 +363,9 @@ def list_sandboxes(tenant_id: Optional[str] = None):
             labels = ns.metadata.labels or {}
             annotations = ns.metadata.annotations or {}
             pods = core_v1.list_namespaced_pod(ns.metadata.name)
-            running = sum(1 for p in pods.items if p.status.phase == "Running")
-            total = len(pods.items)
+            active_pods = [p for p in pods.items if p.status.phase != "Succeeded"]
+            running = sum(1 for p in active_pods if p.status.phase == "Running")
+            total = len(active_pods)
 
             # Parse stored config
             config_json = annotations.get("prometheon.io/sandbox-config", "{}")
@@ -378,7 +379,7 @@ def list_sandboxes(tenant_id: Optional[str] = None):
                 "namespace": ns.metadata.name,
                 "tenant_id": labels.get("prometheon.io/tenant-id", "unknown"),
                 "name": labels.get("prometheon.io/sandbox-name", "default"),
-                "status": "ready" if running == total and total > 0 else "creating",
+                "status": "deleting" if ns.status.phase == "Terminating" else ("ready" if running == total and total > 0 else "creating"),
                 "pods": f"{running}/{total}",
                 "entry_point": labels.get("prometheon.io/entry-point", ""),
                 "service_count": len(sandbox_config.get("services", [])),
@@ -417,6 +418,8 @@ def get_sandbox(sandbox_id: str):
         pods = core_v1.list_namespaced_pod(ns_name)
         pod_statuses = []
         for p in pods.items:
+            if p.status.phase == "Succeeded":
+                continue
             pod_statuses.append({
                 "name": p.metadata.name,
                 "status": p.status.phase,
@@ -430,8 +433,9 @@ def get_sandbox(sandbox_id: str):
             for s in k8s_services.items
         }
 
-        running = sum(1 for p in pods.items if p.status.phase == "Running")
-        total = len(pods.items)
+        active_pods = [p for p in pods.items if p.status.phase != "Succeeded"]
+        running = sum(1 for p in active_pods if p.status.phase == "Running")
+        total = len(active_pods)
 
         return {
             "sandbox_id": sandbox_id,
@@ -575,7 +579,7 @@ def _create_toxiproxy_init_job(namespace: str, sandbox_id: str, proxy_map: dict)
         metadata=client.V1ObjectMeta(name=f"toxiproxy-init-{sandbox_id}", namespace=namespace),
         spec=client.V1JobSpec(
             backoff_limit=3,
-            ttl_seconds_after_finished=120,
+            ttl_seconds_after_finished=30,
             template=client.V1PodTemplateSpec(
                 spec=client.V1PodSpec(
                     containers=[

@@ -1,7 +1,8 @@
-import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api';
 import { useSandbox } from '../contexts/SandboxContext';
 import NoSandbox from '../components/NoSandbox';
+import { useState, useEffect } from 'react';
+import { useQuery, useMutation } from '@tanstack/react-query';
 
 const GRAFANA_URL = import.meta.env.VITE_GRAFANA_URL || 'http://localhost:3000';
 
@@ -37,7 +38,26 @@ export default function Dashboard() {
     refetchInterval: 10000,
   });
 
+  // Auto-warmup: send a few requests when sandbox first loads to seed metrics
+  const [warmedUp, setWarmedUp] = useState<string | null>(null);
+  const [initialized, setInitialized] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setInitialized(true), 500);
+    return () => clearTimeout(t);
+  }, []);
+  const warmupMutation = useMutation({
+    mutationFn: () => api.startReplay(sid!, 5, 100),
+    onSuccess: () => setWarmedUp(sid!),
+  });
+
+  useEffect(() => {
+    if (sid && sid !== warmedUp && !warmupMutation.isPending) {
+      warmupMutation.mutate();
+    }
+  }, [sid]);
+
   if (!activeSandbox) {
+    if (!initialized) return <div className="flex items-center justify-center h-64"><div className="w-6 h-6 border-2 border-sky-500 border-t-transparent rounded-full animate-spin" /></div>;
     return <NoSandbox title="No sandbox selected" description="Create a sandbox to see real-time metrics from your service mesh." />;
   }
 

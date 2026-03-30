@@ -36,7 +36,14 @@ const SandboxContext = createContext<SandboxContextValue | null>(null);
 
 export function SandboxProvider({ children }: { children: ReactNode }) {
   const { user, isAuthenticated } = useAuth();
-  const [activeSandbox, setActiveSandboxState] = useState<SandboxInfo | null>(null);
+  const [activeSandbox, setActiveSandboxState] = useState<SandboxInfo | null>(() => {
+    try {
+      const stored = localStorage.getItem('prometheon_active_sandbox');
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      return null;
+    }
+  });
   const [sandboxes, setSandboxes] = useState<SandboxInfo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 

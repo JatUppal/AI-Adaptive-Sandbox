@@ -151,11 +151,15 @@ def _otel_name(svc: str, sid: str) -> str:
     return f"{svc}-{sid}"
 
 async def _prom_query(query: str):
+    import math
     async with httpx.AsyncClient(timeout=5.0) as client:
         resp = await client.get(f"{PROMETHEUS_URL}/api/v1/query", params={"query": query})
         if resp.status_code != 200: return None
         r = resp.json().get("data",{}).get("result",[])
-        return float(r[0]["value"][1]) if r and "value" in r[0] else 0.0
+        if r and "value" in r[0]:
+            v = float(r[0]["value"][1])
+            return 0.0 if math.isnan(v) or math.isinf(v) else v
+        return 0.0
 
 async def _prom_range(query: str, dur: str = "20m", step: str = "60s") -> list:
     import time
