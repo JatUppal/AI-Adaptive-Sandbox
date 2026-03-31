@@ -77,19 +77,19 @@ spec:
       serviceAccountName: sandbox-manager
       containers:
         - name: sandbox-manager
-          image: prometheon/sandbox-manager:latest
-          imagePullPolicy: Never
+          image: 171704188983.dkr.ecr.us-east-1.amazonaws.com/prometheon/sandbox-manager:latest
+          imagePullPolicy: Always
           ports:
             - containerPort: 9000
           env:
             - name: SERVICE_A_IMAGE
-              value: prometheon/service-a:latest
+              value: "171704188983.dkr.ecr.us-east-1.amazonaws.com/prometheon/service-a:latest"
             - name: SERVICE_B_IMAGE
-              value: prometheon/service-b:latest
+              value: "171704188983.dkr.ecr.us-east-1.amazonaws.com/prometheon/service-b:latest"
             - name: SERVICE_C_IMAGE
-              value: prometheon/service-c:latest
+              value: "171704188983.dkr.ecr.us-east-1.amazonaws.com/prometheon/service-c:latest"
             - name: TOXIPROXY_IMAGE
-              value: shopify/toxiproxy
+              value: "shopify/toxiproxy"
           readinessProbe:
             httpGet:
               path: /health

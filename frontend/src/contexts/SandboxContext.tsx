@@ -49,7 +49,7 @@ export function SandboxProvider({ children }: { children: ReactNode }) {
 
   // Fetch sandboxes for the current tenant
   const refreshSandboxes = useCallback(async () => {
-    if (!user?.tenant_id) {
+    if (!user?.id) {
       setSandboxes([]);
       setIsLoading(false);
       return;
@@ -57,7 +57,7 @@ export function SandboxProvider({ children }: { children: ReactNode }) {
 
     try {
       const resp = await fetch(
-        `${SANDBOX_URL}/sandboxes?tenant_id=${user.tenant_id}`
+        `${SANDBOX_URL}/sandboxes?tenant_id=${user.id}`
       );
       if (resp.ok) {
         const data = await resp.json();
@@ -97,7 +97,7 @@ export function SandboxProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  }, [user?.tenant_id, activeSandbox]);
+  }, [user?.id, activeSandbox]);
 
   // Load on auth change
   useEffect(() => {

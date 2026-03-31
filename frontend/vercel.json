@@ -1,0 +1,23 @@
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "framework": "vite",
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "http://ae244d5abff6a4f86bc87f07142a0ed4-065f54ebddc2fb65.elb.us-east-1.amazonaws.com/:path*"
+    },
+    {
+      "source": "/sandbox-api/:path*",
+      "destination": "http://a7df04653702946fd82537a69a83880d-f69f3fc8ec461bae.elb.us-east-1.amazonaws.com/:path*"
+    },
+    {
+      "source": "/grafana/:path*",
+      "destination": "http://a81093c5b67234641a1dde38d13887a0-9859be3f0996617c.elb.us-east-1.amazonaws.com/:path*"
+    },
+    {
+      "source": "/((?!api|sandbox-api|grafana|assets).*)",
+      "destination": "/index.html"
+    }
+  ]
+}

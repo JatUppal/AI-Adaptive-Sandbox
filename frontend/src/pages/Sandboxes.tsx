@@ -237,8 +237,8 @@ export default function Sandboxes() {
 
   // Queries
   const { data: sandboxes, isLoading, error } = useQuery({
-    queryKey: ['sandboxes', user?.tenant_id],
-    queryFn: () => api.listSandboxes(user?.tenant_id),
+    queryKey: ['sandboxes', user?.id],
+    queryFn: () => api.listSandboxes(user?.id),
     refetchInterval: 5000,
   });
 
@@ -260,7 +260,7 @@ export default function Sandboxes() {
   // Mutations
   const createMutation = useMutation({
     mutationFn: () =>
-      api.createSandbox(user?.tenant_id || 'default', newName, newTier, useDemo ? undefined : services, useDemo ? undefined : connections, useDemo),
+      api.createSandbox(user?.id || 'default', newName, newTier, useDemo ? undefined : services, useDemo ? undefined : connections, useDemo),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['sandboxes'] });
       refreshSandboxes();

@@ -4,6 +4,7 @@ metadata:
   name: postgres-pvc
   namespace: prometheon-platform
 spec:
+  storageClassName: gp2
   accessModes: [ReadWriteOnce]
   resources:
     requests:
@@ -34,6 +35,8 @@ spec:
           env:
             - name: POSTGRES_DB
               value: prometheon
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
             - name: POSTGRES_USER
               value: prometheon
             - name: POSTGRES_PASSWORD

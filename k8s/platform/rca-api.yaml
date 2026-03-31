@@ -17,8 +17,8 @@ spec:
     spec:
       containers:
         - name: rca-api
-          image: prometheon/rca-api:latest
-          imagePullPolicy: Never  # use local kind image
+          image: 171704188983.dkr.ecr.us-east-1.amazonaws.com/prometheon/rca-api:latest
+          imagePullPolicy: Always  # use local kind image
           ports:
             - containerPort: 8000
           env:

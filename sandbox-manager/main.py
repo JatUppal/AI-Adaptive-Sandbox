@@ -127,7 +127,7 @@ class SandboxResponse(BaseModel):
 
 
 RESOURCE_TIERS = {
-    "small":  {"cpu_limit": "500m",  "mem_limit": "512Mi", "cpu_request": "100m", "mem_request": "128Mi"},
+    "small":  {"cpu_limit": "300m",  "mem_limit": "256Mi", "cpu_request": "50m",  "mem_request": "64Mi"},
     "medium": {"cpu_limit": "1000m", "mem_limit": "1Gi",   "cpu_request": "250m", "mem_request": "256Mi"},
     "large":  {"cpu_limit": "2000m", "mem_limit": "2Gi",   "cpu_request": "500m", "mem_request": "512Mi"},
 }
