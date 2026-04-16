@@ -95,12 +95,12 @@ export default function Replay() {
               <div className="text-2xl font-bold text-white font-mono">{result.total}</div>
               <div className="text-xs text-zinc-500 mt-1">Total</div>
             </div>
-            <div className="bg-sky-500/10 border border-sky-500/20 rounded-lg p-4 text-center">
-              <div className="text-2xl font-bold text-sky-400 font-mono">{result.success}</div>
+            <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-4 text-center">
+              <div className="text-2xl font-bold text-green-400 font-mono">{result.success}</div>
               <div className="text-xs text-zinc-500 mt-1">Successful</div>
             </div>
-            <div className={`rounded-lg p-4 text-center ${
-              result.failed > 0 ? 'bg-red-500/10 border border-red-500/20' : 'bg-zinc-800/50'
+            <div className={`bg-red-500/10 border border-red-500/20 rounded-lg p-4 text-center ${
+              result.failed > 0 ? 'bg-red-500/10 border border-red-500/20' : 'bg-red-500/10 border border-red-500/20'
             }`}>
               <div className={`text-2xl font-bold font-mono ${result.failed > 0 ? 'text-red-400' : 'text-zinc-400'}`}>
                 {result.failed}
@@ -117,7 +117,7 @@ export default function Replay() {
             </div>
             <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
               <div
-                className="h-full bg-sky-500 rounded-full transition-all"
+                className="h-full bg-green-500 rounded-full transition-all"
                 style={{ width: `${result.total > 0 ? (result.success / result.total) * 100 : 0}%` }}
               />
             </div>

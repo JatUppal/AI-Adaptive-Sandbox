@@ -63,7 +63,7 @@ export default function Dashboard() {
 
   const grafanaBase = `${GRAFANA_URL}/d-solo/prometheon-chaos/chaos-engineering`;
   const sandboxFilter = `&var-sandbox=${activeSandbox.sandbox_id}`;
-  const grafanaParams = `orgId=1&from=now-30m&to=now&theme=dark&refresh=5s${sandboxFilter}`;
+  const grafanaParams = `orgId=1&from=now-30m&to=now&theme=dark&refresh=1s${sandboxFilter}`;
 
   const panels = {
     requestRate: `${grafanaBase}?${grafanaParams}&panelId=1`,

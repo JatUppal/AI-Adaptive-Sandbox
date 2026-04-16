@@ -80,7 +80,7 @@ export default function FailureInjection() {
 
   const [selectedProxy, setSelectedProxy] = useState('');
   const [toxicType, setToxicType] = useState('latency');
-  const [fieldValues, setFieldValues] = useState<Record<string, number>>({ latency: 1000, jitter: 0 });
+  const [fieldValues, setFieldValues] = useState<Record<string, number | string>>({ latency: 1000, jitter: 0 });
 
   const activeDef = toxicTypes.find((t) => t.value === toxicType)!;
 
@@ -105,7 +105,7 @@ export default function FailureInjection() {
   const proxyOptions = toxicsData
     ? Object.keys(toxicsData).map((name) => {
         const parts = name.split('_to_');
-        const label = parts.length === 2 ? `${parts[0]} → ${parts[1]} (${name})` : name;
+        const label = parts.length === 2 ? `${parts[0]} → ${parts[1]}` : name;
         return { value: name, label };
       })
     : [];
@@ -117,14 +117,19 @@ export default function FailureInjection() {
 
   // Add toxic
   const addMutation = useMutation({
-    mutationFn: () =>
-      api.addToxic(sid!, selectedProxy, {
+    mutationFn: () => {
+      const attrs: Record<string, number> = {};
+      for (const [k, v] of Object.entries(fieldValues)) {
+        attrs[k] = Number(v) || 0;
+      }
+      return api.addToxic(sid!, selectedProxy, {
         type: toxicType,
         name: `${toxicType}_${Date.now()}`,
-        attributes: fieldValues,
+        attributes: attrs,
         stream: 'downstream',
         toxicity: 1,
-      }),
+      });
+    },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['toxics', sid] }),
   });
 
@@ -206,7 +211,7 @@ export default function FailureInjection() {
               <input
                 type="number"
                 value={fieldValues[field.name] ?? ''}
-                onChange={(e) => setFieldValues({ ...fieldValues, [field.name]: e.target.value === '' ? 0 : Number(e.target.value) })}
+                onChange={(e) => setFieldValues({ ...fieldValues, [field.name]: e.target.value === '' ? '' : Number(e.target.value) })}
                 onFocus={(e) => e.target.select()}
                 className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-white text-sm
                            focus:outline-none focus:ring-2 focus:ring-sky-500/40"

@@ -9,12 +9,12 @@ import { useSandbox } from '../contexts/SandboxContext';
 // ---------------------------------------------------------------------------
 function StatusBadge({ status }: { status: string }) {
   const colors: Record<string, string> = {
-    ready: 'bg-sky-500/15 text-sky-400',
+    ready: 'bg-green-500/15 text-green-400',
     creating: 'bg-amber-500/15 text-amber-400',
     deleting: 'bg-red-500/15 text-red-400',
   };
   const dots: Record<string, string> = {
-    ready: 'bg-sky-400',
+    ready: 'bg-green-400',
     creating: 'bg-amber-400 animate-pulse',
     deleting: 'bg-red-400 animate-pulse',
   };
@@ -550,8 +550,8 @@ export default function Sandboxes() {
                         <div key={pod.name} className="flex items-center justify-between bg-zinc-800/50 rounded-lg px-3 py-2">
                           <span className="text-xs text-zinc-300 font-mono truncate flex-1">{pod.name}</span>
                           <div className="flex items-center gap-2 ml-2">
-                            <span className={`w-1.5 h-1.5 rounded-full ${pod.ready ? 'bg-sky-400' : 'bg-amber-400 animate-pulse'}`} />
-                            <span className={`text-xs ${pod.ready ? 'text-sky-400' : 'text-amber-400'}`}>{pod.status}</span>
+                            <span className={`w-1.5 h-1.5 rounded-full ${pod.ready ? 'bg-green-400' : 'bg-amber-400 animate-pulse'}`} />
+                            <span className={`text-xs ${pod.ready ? 'text-green-400' : 'text-amber-400'}`}>{pod.status}</span>
                           </div>
                         </div>
                       ))}
